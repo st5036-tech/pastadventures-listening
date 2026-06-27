@@ -1,10 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Play, Pause, RotateCcw, Volume2, VolumeX, Sparkles, Award, 
-  BookOpen, CheckCircle, AlertCircle, RefreshCw, ChevronRight, 
-  ArrowRight, Shield, Clock, BarChart2, Star, Settings, User, 
-  Map, HelpCircle, Eye, FileText, Check, AlertTriangle, Moon, Sun,
-  Smartphone, Tablet, Laptop, HelpCircle as HelpIcon, ArrowUpRight
+  BookOpen, CheckCircle, AlertCircle, RefreshCw, Star, Settings, 
+  Smartphone, Tablet, Laptop, Check
 } from 'lucide-react';
 
 // ==========================================
@@ -208,7 +206,7 @@ const playSynthSound = (type, isMuted) => {
         break;
     }
   } catch (e) {
-    console.warn("Web Audio API is restricted by browser policy.", e);
+    console.warn("Audio Context init is blocked by browser policy.", e);
   }
 };
 
@@ -216,74 +214,13 @@ const playSynthSound = (type, isMuted) => {
 // 3. MAIN COMPONENT DEFINITION
 // ==========================================
 export default function App() {
-  // Device view preview configurations and global display states
-  const [deviceView, setDeviceView] = useState('desktop'); // 'mobile', 'tablet', 'desktop'
-  const [theme, setTheme] = useState('light'); // 'light', 'dark'
-  const [fontSize, setFontSize] = useState('base'); // 'sm', 'base', 'lg'
+  const [deviceView, setDeviceView] = useState('desktop');
+  const [theme, setTheme] = useState('light');
+  const [fontSize, setFontSize] = useState('base');
   const [isMuted, setIsMuted] = useState(false);
-  const [activeTab, setActiveTab] = useState('home'); // 'home', 'pre', 'while', 'post', 'dashboard', 'settings'
+  const [activeTab, setActiveTab] = useState('home');
   const [availableVoices, setAvailableVoices] = useState([]);
   const [showCelebration, setShowCelebration] = useState(false);
-
-  // Asynchronous browser voice initialization
-  useEffect(() => {
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      const updateVoices = () => {
-        const voices = window.speechSynthesis.getVoices();
-        setAvailableVoices(voices);
-      };
-      updateVoices();
-      window.speechSynthesis.onvoiceschanged = updateVoices;
-    }
-  }, []);
-
-  // Student progress loaded from local storage
-  const [progress, setProgress] = useState(() => {
-    try {
-      const saved = localStorage.getItem('listening_lab_progress');
-      if (saved) return JSON.parse(saved);
-    } catch (e) {}
-    return {
-      points: 0,
-      xp: 0,
-      completedActivities: [],
-      badges: [],
-      predictionsSelected: [],
-      keywordTaps: [],
-      grammarScore: 0,
-      vocabScore: 0,
-      listeningScore: 0,
-      writingScore: 0,
-      streak: 3,
-      timeSpent: 12,
-    };
-  });
-
-  // Save progress effect
-  useEffect(() => {
-    try {
-      localStorage.setItem('listening_lab_progress', JSON.stringify(progress));
-    } catch (e) {}
-  }, [progress]);
-
-  // Audio Player states
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [playbackSpeed, setPlaybackSpeed] = useState(1);
-  const [audioProgress, setAudioProgress] = useState(0);
-  const [activeSpeechIndex, setActiveSpeechIndex] = useState(-1);
-
-  // Mutable refs to prevent Stale Closures and audio playback loops
-  const activeSpeechIndexRef = useRef(-1);
-  const isPlayingRef = useRef(false);
-  const audioTimeoutRef = useRef(null);
-
-  // Synchronize playback state ref
-  useEffect(() => {
-    isPlayingRef.current = isPlaying;
-    return () => {
-      if (audioTimeoutRef.current) clearTimeout(audioTimeoutRef.current);
-    };
-  }, [isPlaying]);
 
   // Vocabulary matching activity states
   const [vocabMatches, setVocabMatches] = useState({});
@@ -291,8 +228,7 @@ export default function App() {
   const [matchingError, setMatchingError] = useState(null);
   const [vocabFinished, setVocabFinished] = useState(false);
 
-  // Story prediction module states
-  const [predictionsSubmitting, setPredictionsSubmitting] = useState(false);
+  // Predictions states
   const [predictionsSubmitted, setPredictionsSubmitted] = useState(false);
 
   // MCQ Mission states
@@ -318,8 +254,68 @@ export default function App() {
   const [adventureInputs, setAdventureInputs] = useState({ p1: '', p2: '', p3: '', p4: '' });
   const [adventureFeedback, setAdventureFeedback] = useState(null);
 
+  // Audio Player states
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  const [audioProgress, setAudioProgress] = useState(0);
+  const [activeSpeechIndex, setActiveSpeechIndex] = useState(-1);
+
   // Achievements Toast notification state
   const [toast, setToast] = useState(null);
+
+  // Mutable refs to prevent Stale Closures and audio playback loops
+  const activeSpeechIndexRef = useRef(-1);
+  const isPlayingRef = useRef(false);
+  const audioTimeoutRef = useRef(null);
+
+  // Student progress loaded from local storage
+  const [progress, setProgress] = useState(() => {
+    try {
+      const saved = localStorage.getItem('listening_lab_progress');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return {
+      points: 0,
+      xp: 0,
+      completedActivities: [],
+      badges: [],
+      predictionsSelected: [],
+      keywordTaps: [],
+      grammarScore: 0,
+      vocabScore: 0,
+      listeningScore: 0,
+      writingScore: 0,
+      streak: 3,
+      timeSpent: 12,
+    };
+  });
+
+  // Fetch browser voices
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      const updateVoices = () => {
+        const voices = window.speechSynthesis.getVoices();
+        setAvailableVoices(voices);
+      };
+      updateVoices();
+      window.speechSynthesis.onvoiceschanged = updateVoices;
+    }
+  }, []);
+
+  // Save progress effect
+  useEffect(() => {
+    try {
+      localStorage.setItem('listening_lab_progress', JSON.stringify(progress));
+    } catch (e) {}
+  }, [progress]);
+
+  // Synchronize playback state ref
+  useEffect(() => {
+    isPlayingRef.current = isPlaying;
+    return () => {
+      if (audioTimeoutRef.current) clearTimeout(audioTimeoutRef.current);
+    };
+  }, [isPlaying]);
 
   const triggerToast = (message, icon) => {
     setToast({ message, icon });
@@ -531,7 +527,7 @@ export default function App() {
 
   const handleSelectMeaning = (meaningItem) => {
     if (!selectedWord) {
-      setMatchingError("Select a word card first!");
+      setMatchingError("Select a vocabulary word card first!");
       return;
     }
     
@@ -578,13 +574,9 @@ export default function App() {
 
   const handleReviewPredictions = () => {
     if (progress.predictionsSelected.length === 0) return;
-    setPredictionsSubmitting(true);
-    setTimeout(() => {
-      playSynthSound('correct', isMuted);
-      setPredictionsSubmitted(true);
-      setPredictionsSubmitting(false);
-      handlePointsGain(10, 'prediction');
-    }, 1000);
+    playSynthSound('correct', isMuted);
+    setPredictionsSubmitted(true);
+    handlePointsGain(10, 'prediction');
   };
 
   // ==========================================
@@ -634,7 +626,7 @@ export default function App() {
     if (isCorrect) {
       playSynthSound('correct', isMuted);
       handlePointsGain(30, 'timeline');
-      triggerToast("Excellent work! You ordered the events chronologically. +30 pts!", "📅");
+      triggerToast("Great job! You ordered the timeline flawlessly. +30 pts!", "📅");
     } else {
       playSynthSound('incorrect', isMuted);
     }
@@ -720,7 +712,7 @@ export default function App() {
   };
 
   const handleReflectionSubmit = (qId) => {
-    const text = reflectionTexts[qId];
+    const text = reflectionTexts[qId] || '';
     const analysis = analyzeGrammar(text);
     
     setReflectionFeedback(prev => ({
@@ -820,12 +812,10 @@ export default function App() {
   // CELEBRATION CONTROL ACTION
   // ==========================================
   const triggerFinalCelebration = () => {
-    // Stop any speech synthesizer running
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     if (audioTimeoutRef.current) clearTimeout(audioTimeoutRef.current);
     setIsPlaying(false);
 
-    // Play Victory sound fanfare and Badge sound fanfare
     playSynthSound('victory', isMuted);
     setTimeout(() => {
       playSynthSound('badge', isMuted);
@@ -834,7 +824,54 @@ export default function App() {
     setShowCelebration(true);
   };
 
-  // Calculate scores for dynamic adaptive feedback
+  const resetAllLabProgress = () => {
+    if (confirm("Are you sure you want to completely reset your adventure scores and badges? This action is permanent!")) {
+      setProgress({
+        points: 0,
+        xp: 0,
+        completedActivities: [],
+        badges: [],
+        predictionsSelected: [],
+        keywordTaps: [],
+        grammarScore: 0,
+        vocabScore: 0,
+        listeningScore: 0,
+        writingScore: 0,
+        streak: 1,
+        timeSpent: 0
+      });
+
+      setVocabMatches({});
+      setVocabFinished(false);
+      setSelectedWord(null);
+      setPredictionsSubmitted(false);
+      setMcqAnswers({});
+      setMcqSubmitted(false);
+      setTimelineChecked(false);
+      setTimelineSuccess(false);
+      setReflectionTexts({ r1: '', r2: '', r3: '' });
+      setReflectionFeedback({});
+      setDetectiveClassified({});
+      setDetectiveChecked(false);
+      setAdventureFeedback(null);
+      setAdventureInputs({ p1: '', p2: '', p3: '', p4: '' });
+
+      try {
+        localStorage.removeItem('listening_lab_progress');
+      } catch (e) {}
+
+      setTimelineOrder([...TIMELINE_EVENTS].sort(() => Math.random() - 0.5));
+      playSynthSound('incorrect', isMuted);
+      triggerToast("Lesson progress successfully reset!", "🔄");
+    }
+  };
+
+  const toggleAudioMute = () => {
+    setIsMuted(!isMuted);
+    playSynthSound('click', !isMuted);
+  };
+
+  // Dynamic adaptive feedback logic calculations
   const finalListeningScore = progress.listeningScore || 0;
   const finalVocabScore = progress.vocabScore || 0;
   const finalGrammarScore = progress.grammarScore || 0;
@@ -886,7 +923,6 @@ export default function App() {
     { name: 'Writing', score: finalWritingScore, recs: ["Try writing another short story using our connectors template.", "Double-check your narrative simple past tenses before submitting."] }
   ];
 
-  // Find weakest areas (sorted ascending)
   const sortedWeakestAreas = [...scoreCategories].sort((a, b) => a.score - b.score);
   const primaryWeakArea = sortedWeakestAreas[0];
   const secondaryWeakArea = sortedWeakestAreas[1];
@@ -897,7 +933,7 @@ export default function App() {
     <div className={`min-h-screen transition-colors duration-300 ${theme === 'dark' ? 'bg-slate-900 text-slate-100' : 'bg-slate-50 text-slate-800'} font-sans`}>
       
       {/* GLOBAL NAVIGATION HEADER & DEVICE SIMULATOR */}
-      <header className="sticky top-0 z-50 backdrop-blur-md bg-opacity-90 bg-indigo-900 text-white px-4 py-3 shadow-lg border-b border-indigo-800">
+      <header className="sticky top-0 z-50 backdrop-blur-md bg-indigo-900/90 text-white px-4 py-3 shadow-lg border-b border-indigo-800">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           
           <div className="flex items-center gap-3">
@@ -916,7 +952,7 @@ export default function App() {
             <span className="text-xs text-indigo-300 px-2 font-semibold hidden lg:inline">Device View:</span>
             <button 
               onClick={() => { setDeviceView('mobile'); playSynthSound('click', isMuted); }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${deviceView === 'mobile' ? 'bg-cyan-500 text-slate-950 shadow-md' : 'text-indigo-300 hover:bg-indigo-900/60'}`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${deviceView === 'mobile' ? 'bg-cyan-500 text-slate-900 shadow-md' : 'text-indigo-300 hover:bg-indigo-900/60'}`}
               title="Mobile View"
             >
               <Smartphone className="w-3.5 h-3.5" />
@@ -924,7 +960,7 @@ export default function App() {
             </button>
             <button 
               onClick={() => { setDeviceView('tablet'); playSynthSound('click', isMuted); }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${deviceView === 'tablet' ? 'bg-cyan-500 text-slate-950 shadow-md' : 'text-indigo-300 hover:bg-indigo-900/60'}`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${deviceView === 'tablet' ? 'bg-cyan-500 text-slate-900 shadow-md' : 'text-indigo-300 hover:bg-indigo-900/60'}`}
               title="Tablet View"
             >
               <Tablet className="w-3.5 h-3.5" />
@@ -932,7 +968,7 @@ export default function App() {
             </button>
             <button 
               onClick={() => { setDeviceView('desktop'); playSynthSound('click', isMuted); }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${deviceView === 'desktop' ? 'bg-cyan-500 text-slate-950 shadow-md' : 'text-indigo-300 hover:bg-indigo-900/60'}`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${deviceView === 'desktop' ? 'bg-cyan-500 text-slate-900 shadow-md' : 'text-indigo-300 hover:bg-indigo-900/60'}`}
               title="Desktop View"
             >
               <Laptop className="w-3.5 h-3.5" />
@@ -953,14 +989,8 @@ export default function App() {
       </header>
 
       {/* DEVICE VIEW WRAPPER PREVIEW SIMULATOR */}
-      <div className="max-w-7xl mx-auto p-4 flex justify-center">
-        <div className={`transition-all duration-300 w-full ${
-          deviceView === 'mobile' 
-            ? 'max-w-[400px] border-[12px] border-slate-800 dark:border-slate-700 rounded-[40px] shadow-2xl bg-white dark:bg-slate-900 min-h-[780px] overflow-hidden my-4' 
-            : deviceView === 'tablet'
-            ? 'max-w-[768px] border-[14px] border-slate-800 dark:border-slate-700 rounded-[30px] shadow-2xl bg-white dark:bg-slate-900 min-h-[900px] overflow-hidden my-4'
-            : 'max-w-full'
-        }`}>
+      <div className="max-w-7xl mx-auto p-4 flex-1 flex justify-center w-full">
+        <div id="device-container" className="transition-all duration-300 w-full max-w-full">
           
           <div className={`p-2 sm:p-4 md:p-6 ${fontClass}`}>
             
@@ -1021,7 +1051,7 @@ export default function App() {
                       <div className="pt-2 flex flex-wrap gap-3">
                         <button 
                           onClick={() => { setActiveTab('pre'); playSynthSound('click', isMuted); }}
-                          className="px-5 py-2.5 bg-gradient-to-r from-emerald-400 to-teal-500 text-slate-900 font-extrabold rounded-xl hover:scale-105 transition-all shadow-lg flex items-center gap-2"
+                          className="px-5 py-2.5 bg-gradient-to-r from-emerald-400 to-teal-500 text-slate-955 font-extrabold rounded-xl hover:scale-105 transition-all shadow-lg flex items-center gap-2"
                         >
                           ▶ Start Lesson
                         </button>
@@ -1064,10 +1094,7 @@ export default function App() {
                       </span>
                     </div>
                     <div className="w-full bg-slate-200 dark:bg-slate-700 h-4 rounded-full overflow-hidden p-0.5">
-                      <div 
-                        className="bg-gradient-to-r from-indigo-500 via-cyan-500 to-emerald-500 h-full rounded-full transition-all duration-700"
-                        style={{ width: `${Math.min(100, (progress.completedActivities.length / 8) * 100)}%` }}
-                      />
+                      <div className="bg-gradient-to-r from-indigo-500 via-cyan-500 to-emerald-500 h-full rounded-full transition-all duration-700" style={{ width: `${(progress.completedActivities.length / 8) * 100}%` }}></div>
                     </div>
                   </div>
 
@@ -1081,13 +1108,13 @@ export default function App() {
                         Max and his brother decided to go hiking in the mountains last weekend, but the weather had a surprise for them. Listen carefully to Max's story to Leo and pay attention to how he structures events using the simple past tense.
                       </p>
                       <div className="p-3 bg-indigo-50 dark:bg-indigo-950/40 rounded-xl text-xs text-indigo-600 dark:text-indigo-400 font-semibold">
-                        💡 Grammar Note: Pay attention to regular verbs (ending in -ed) and irregular verbs (went, bought, ran) that you hear during the lesson.
+                        💡 Nota Gramatical: Presta atención a los verbos regulares (terminan en -ed) y los irregulares (went, bought, ran) que escuches durante la lección.
                       </div>
                     </div>
 
                     <div className="bg-white dark:bg-slate-800/40 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-4">
                       <h3 className="font-bold text-lg flex items-center gap-2 text-indigo-600 dark:text-cyan-400">
-                        <Award className="text-amber-500" /> Unlocked Badges ({progress.badges.length})
+                        <Award className="text-amber-500" /> Insignias Obtenidas ({progress.badges.length})
                       </h3>
                       <div className="grid grid-cols-2 gap-2">
                         {BADGES.map(b => {
@@ -1134,7 +1161,7 @@ export default function App() {
                     {vocabFinished ? (
                       <div className="p-6 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/50 rounded-2xl text-center space-y-3">
                         <span className="text-4xl block">✨ 🏆 ✨</span>
-                        <h3 className="font-extrabold text-emerald-600 dark:text-emerald-400">Amazing Work!</h3>
+                        <h3 className="font-extrabold text-emerald-600 dark:text-emerald-400">Brilliant Work!</h3>
                         <p className="text-sm text-slate-600 dark:text-slate-300 max-w-md mx-auto">You matched all terms of the story with their definitions. You earned +10 points!</p>
                         <button 
                           onClick={handleResetVocab}
@@ -1158,7 +1185,7 @@ export default function App() {
                                   onClick={() => handleSelectWord(item)}
                                   className={`p-3 rounded-2xl border text-center transition relative overflow-hidden ${
                                     isMatched 
-                                      ? 'bg-slate-100 dark:bg-slate-800/40 border-emerald-500/50 text-emerald-500' 
+                                      ? 'bg-slate-100 dark:bg-slate-800/40 border-emerald-500/50 text-emerald-500 cursor-not-allowed' 
                                       : isSelected
                                       ? 'bg-indigo-600 border-indigo-700 text-white scale-105 shadow-md'
                                       : 'bg-indigo-50/40 dark:bg-slate-800/20 border-slate-200 dark:border-slate-700/60 hover:border-indigo-400 dark:hover:border-indigo-500'
@@ -1168,7 +1195,7 @@ export default function App() {
                                   <span className="text-xs font-bold block">{item.word}</span>
                                   {isMatched && (
                                     <div className="absolute top-1 right-1 bg-emerald-500 text-white rounded-full p-0.5">
-                                      <Check className="w-3.5 h-3.5" />
+                                      <Check className="w-3.5 h-3.5 text-white" />
                                     </div>
                                   )}
                                 </button>
@@ -1190,8 +1217,8 @@ export default function App() {
                                   onClick={() => handleSelectMeaning(item)}
                                   className={`p-3 text-left rounded-2xl border transition text-xs flex flex-col justify-between min-h-[90px] ${
                                     isMatched 
-                                      ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-500/50 text-emerald-600 dark:text-emerald-400' 
-                                      : 'bg-white dark:bg-slate-800 border-slate-200 hover:border-cyan-500 hover:shadow-sm'
+                                      ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-500/50 text-emerald-600 dark:text-emerald-400 cursor-not-allowed' 
+                                      : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-cyan-500 hover:shadow-sm'
                                   }`}
                                 >
                                   <p className="font-semibold">{item.meaning}</p>
@@ -1244,11 +1271,11 @@ export default function App() {
                               className={`p-4 rounded-2xl text-left border transition flex items-start gap-3 ${
                                   isSelected 
                                   ? 'bg-indigo-50 border-indigo-500 dark:bg-slate-800/80 dark:border-indigo-400' 
-                                  : 'bg-white dark:bg-slate-850 border-slate-200 dark:border-slate-850 hover:border-indigo-300'
+                                  : 'bg-white dark:bg-slate-850 border-slate-200 dark:border-slate-800/60 hover:border-indigo-300'
                               }`}
                             >
                               <div className={`mt-0.5 w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0 ${isSelected ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-slate-300'}`}>
-                                {isSelected && <Check className="w-3.5 h-3.5" />}
+                                {isSelected && <Check className="w-3.5 h-3.5 text-white" />}
                               </div>
                               <div className="space-y-1">
                                 <span className="font-bold text-sm block">{p.text}</span>
@@ -1267,10 +1294,10 @@ export default function App() {
                         {!predictionsSubmitted ? (
                           <button
                             onClick={handleReviewPredictions}
-                            disabled={progress.predictionsSelected.length === 0 || predictionsSubmitting}
+                            disabled={progress.predictionsSelected.length === 0}
                             className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition text-sm disabled:opacity-50"
                           >
-                            {predictionsSubmitting ? 'Analyzing Predictions...' : 'Confirm Predictions (+10 XP)'}
+                            Confirm Predictions (+10 XP)
                           </button>
                         ) : (
                           <span className="text-xs bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5">
@@ -1307,44 +1334,40 @@ export default function App() {
                   <div className="bg-gradient-to-br from-indigo-900 to-indigo-950 text-white p-6 rounded-3xl shadow-lg border border-indigo-800 space-y-6">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-indigo-800 pb-4">
                       <div>
-                        <span className="text-xs bg-cyan-400 text-indigo-950 px-2.5 py-1 rounded-full font-extrabold uppercase">Expressive Audio</span>
+                        <span className="text-xs bg-cyan-400 text-indigo-955 px-2.5 py-1 rounded-full font-extrabold uppercase">Expressive Audio</span>
                         <h2 className="text-xl font-extrabold mt-1">Past Adventures audio</h2>
-                        <p className="text-xs text-indigo-200 mt-0.5">Natural conversation with differentiated accents and realistic intonation</p>
+                        <p className="text-xs text-indigo-200 mt-0.5">Realistic conversations with differentiated voices and slow clear pacing for A2</p>
                       </div>
                       
                       {/* SPEED CONTROLS */}
                       <div className="flex items-center gap-1.5 bg-indigo-950/80 p-1 rounded-xl border border-indigo-800/60">
                         <span className="text-[10px] text-indigo-300 px-1 font-bold">Speed:</span>
-                        {[0.75, 1, 1.25].map(speed => (
-                          <button
-                            key={speed}
-                            onClick={() => { setPlaybackSpeed(speed); playSynthSound('click', isMuted); }}
-                            className={`px-2 py-1 rounded-lg text-xs font-black transition ${playbackSpeed === speed ? 'bg-cyan-400 text-slate-950' : 'text-indigo-200 hover:bg-indigo-900'}`}
-                          >
-                            {speed}x
-                          </button>
-                        ))}
+                        <button onClick={() => setPlaybackSpeed(0.75)} id="speed-075" className={`px-2 py-1 rounded-lg text-xs font-black transition ${playbackSpeed === 0.75 ? 'bg-cyan-400 text-slate-950' : 'text-indigo-200 hover:bg-indigo-900'}`}>0.75x</button>
+                        <button onClick={() => setPlaybackSpeed(1.0)} id="speed-100" className={`px-2 py-1 rounded-lg text-xs font-black transition ${playbackSpeed === 1.0 ? 'bg-cyan-400 text-slate-950' : 'text-indigo-200 hover:bg-indigo-900'}`}>1x</button>
+                        <button onClick={() => setPlaybackSpeed(1.25)} id="speed-125" className={`px-2 py-1 rounded-lg text-xs font-black transition ${playbackSpeed === 1.25 ? 'bg-cyan-400 text-slate-950' : 'text-indigo-200 hover:bg-indigo-900'}`}>1.25x</button>
                       </div>
                     </div>
 
                     {/* WAVEFORM ELEMENT */}
                     <div className="space-y-2">
                       <div className="flex justify-between text-xs text-indigo-300">
-                        <span>Accent: Max (UK, steady) & Leo (US, cheerful)</span>
+                        <span>Acentuation: Max (UK, steady) & Leo (US, cheerful)</span>
                         <span>{activeSpeechIndex >= 0 ? `${activeSpeechIndex + 1} / ${TRANSCRIPT.length}` : "0 / 13"} sentences read</span>
                       </div>
                       <div className="h-10 bg-indigo-950 rounded-xl flex items-center px-4 overflow-hidden gap-1.5 border border-indigo-800/80 relative">
-                        {Array.from({ length: 40 }).map((_, i) => {
-                          const isActive = (audioProgress / 100) * 40 > i;
-                          const height = isPlaying ? Math.sin(i * 0.5 + audioProgress * 0.1) * 16 + 20 : 10;
-                          return (
-                            <div 
-                              key={i} 
-                              className={`w-1 rounded-full transition-all duration-300 ${isActive ? 'bg-cyan-400' : 'bg-indigo-800'}`} 
-                              style={{ height: `${height}px` }}
-                            />
-                          );
-                        })}
+                        <div className="flex w-full justify-between items-center h-full px-2" id="waveform-visualizer">
+                          {Array.from({ length: 40 }).map((_, i) => {
+                            const isActive = (audioProgress / 100) * 40 > i;
+                            const height = isPlaying ? Math.sin(i * 0.5 + audioProgress * 0.1) * 16 + 20 : 10;
+                            return (
+                              <div 
+                                key={i}
+                                className={`w-1 rounded-full transition-all duration-300 ${isActive ? 'bg-cyan-400' : 'bg-indigo-800'}`} 
+                                style={{ height: `${height}px` }}
+                              />
+                            );
+                          })}
+                        </div>
                         <div 
                           className="absolute top-0 bottom-0 left-0 bg-cyan-400/10 pointer-events-none transition-all duration-300"
                           style={{ width: `${audioProgress}%` }}
@@ -1357,7 +1380,7 @@ export default function App() {
                       <div className="flex items-center gap-3">
                         <button
                           onClick={handleAudioPlayToggle}
-                          className="w-12 h-12 bg-cyan-400 hover:bg-cyan-300 text-slate-950 rounded-2xl flex items-center justify-center font-bold shadow-md hover:scale-105 transition"
+                          className="w-12 h-12 bg-cyan-400 hover:bg-cyan-300 text-slate-900 rounded-2xl flex items-center justify-center font-bold shadow-md hover:scale-105 transition"
                           title="Play Dialogue"
                         >
                           {isPlaying ? <Pause className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 fill-current translate-x-0.5" />}
@@ -1386,7 +1409,7 @@ export default function App() {
 
                       {/* MUTE SYNTH BUTTON */}
                       <button
-                        onClick={() => setIsMuted(!isMuted)}
+                        onClick={toggleAudioMute}
                         className={`p-2.5 rounded-xl transition ${isMuted ? 'bg-red-950 text-red-400' : 'bg-indigo-900 hover:bg-indigo-800'}`}
                         title="Mute Sound Effects"
                       >
@@ -1414,7 +1437,7 @@ export default function App() {
                             className={`px-4 py-2 rounded-xl border text-xs font-bold transition flex items-center gap-1.5 ${
                               isTapped 
                                 ? 'bg-emerald-50 border-emerald-300 text-emerald-700 dark:bg-emerald-950/20'
-                                : 'bg-slate-50 dark:bg-slate-850 border-slate-200 hover:border-amber-400 hover:bg-amber-50/20'
+                                : 'bg-slate-50 dark:bg-slate-850 border-slate-200 dark:border-slate-700 hover:border-amber-400 hover:bg-amber-50/20'
                             }`}
                           >
                             <span>{word}</span>
@@ -1430,14 +1453,14 @@ export default function App() {
                     <div>
                       <span className="text-xs bg-cyan-100 text-cyan-700 px-2 py-0.5 rounded-full font-bold uppercase">Activity 2</span>
                       <h3 className="font-extrabold text-lg mt-1">Interactive Listening Mission</h3>
-                      <p className="text-xs text-slate-400">Demonstrate your comprehension by answering the trivia about Max's adventure.</p>
+                      <p className="text-xs text-slate-400">Test your level of listening accuracy based on Max and Leo's conversation!</p>
                     </div>
 
                     <div className="space-y-6">
                       {MCQ_QUESTIONS.map(q => {
                         const selectedIdx = mcqAnswers[q.id];
                         return (
-                          <div key={q.id} className="p-4 bg-slate-50/50 dark:bg-slate-850 rounded-2xl border border-slate-100 space-y-3">
+                          <div key={q.id} className="p-4 bg-slate-50/50 dark:bg-slate-850 rounded-2xl border border-slate-100 dark:border-slate-805 space-y-3">
                             <span className="font-bold text-sm block">
                               {q.id}. {q.question}
                             </span>
@@ -1478,28 +1501,22 @@ export default function App() {
                     </div>
 
                     <div className="flex justify-end">
-                      {!mcqSubmitted ? (
-                        <button
-                          onClick={handleSubmitMcq}
-                          disabled={Object.keys(mcqAnswers).length < MCQ_QUESTIONS.length}
-                          className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition text-sm disabled:opacity-40"
-                        >
-                          Confirm Comprehension Answers (+20 XP)
-                        </button>
-                      ) : (
-                        <div className="text-right">
-                          <p className="text-sm font-bold text-emerald-500">Comprehension Answers Saved in the Progress Dashboard!</p>
-                        </div>
-                      )}
+                      <button
+                        onClick={handleSubmitMcq}
+                        disabled={Object.keys(mcqAnswers).length < MCQ_QUESTIONS.length || mcqSubmitted}
+                        className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition text-sm disabled:opacity-40"
+                      >
+                        Submit Listening Mission Answers (+20 XP)
+                      </button>
                     </div>
                   </div>
 
-                  {/* SECUENCIADOR DE TIEMPO */}
+                  {/* CHRONOLOGICAL TIMELINE CHANGER */}
                   <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800/80 space-y-6">
                     <div>
                       <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-bold uppercase">Activity 3</span>
                       <h3 className="font-extrabold text-lg mt-1">Listening Timeline Sequencer</h3>
-                      <p className="text-xs text-slate-400">Order the historical events chronologically according to the conversational narrative.</p>
+                      <p className="text-xs text-slate-400">Order these critical events into correct chronological sequence based on the story!</p>
                     </div>
 
                     <div className="space-y-2 max-w-xl">
@@ -1507,31 +1524,16 @@ export default function App() {
                         return (
                           <div 
                             key={item.id} 
-                            className="p-3 bg-slate-50 dark:bg-slate-850 rounded-xl border border-slate-200/80 flex items-center justify-between gap-3"
+                            className="p-3 bg-slate-50 dark:bg-slate-850 rounded-xl border border-slate-200/80 dark:border-slate-850 flex items-center justify-between gap-3"
                           >
                             <div className="flex items-center gap-3">
-                              <span className="w-6 h-6 rounded-full bg-indigo-600 text-white font-bold text-xs flex items-center justify-center">
-                                {index + 1}
-                              </span>
+                              <span className="w-6 h-6 rounded-full bg-indigo-600 text-white font-bold text-xs flex items-center justify-center">{index + 1}</span>
                               <span className="text-xs font-semibold">{item.text}</span>
                             </div>
-                            
                             {!timelineChecked && (
                               <div className="flex gap-1">
-                                <button
-                                  disabled={index === 0}
-                                  onClick={() => moveTimelineItem(index, -1)}
-                                  className="p-1 bg-white hover:bg-slate-100 rounded border text-slate-500 text-xs font-extrabold disabled:opacity-30"
-                                >
-                                  ▲
-                                </button>
-                                <button
-                                  disabled={index === timelineOrder.length - 1}
-                                  onClick={() => moveTimelineItem(index, 1)}
-                                  className="p-1 bg-white hover:bg-slate-100 rounded border text-slate-500 text-xs font-extrabold disabled:opacity-30"
-                                >
-                                  ▼
-                                </button>
+                                <button onClick={() => moveTimelineItem(index, -1)} disabled={index === 0} className="p-1 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded border text-slate-500 dark:border-slate-700 text-xs font-extrabold disabled:opacity-30">▲</button>
+                                <button onClick={() => moveTimelineItem(index, 1)} disabled={index === timelineOrder.length - 1} className="p-1 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded border text-slate-500 dark:border-slate-700 text-xs font-extrabold disabled:opacity-30">▼</button>
                               </div>
                             )}
                           </div>
@@ -1539,7 +1541,7 @@ export default function App() {
                       })}
                     </div>
 
-                    <div className="pt-2 flex flex-wrap gap-2 justify-end">
+                    <div className="pt-2 flex flex-wrap gap-2 justify-end items-center">
                       {timelineChecked && (
                         <div className={`p-3 rounded-xl border text-xs ${timelineSuccess ? 'bg-emerald-50 border-emerald-300 text-emerald-600' : 'bg-red-50 border-red-300 text-red-600'}`}>
                           {timelineSuccess 
@@ -1548,20 +1550,19 @@ export default function App() {
                           }
                         </div>
                       )}
-
                       {!timelineChecked ? (
                         <button
                           onClick={handleVerifyTimeline}
                           className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition"
                         >
-                          Check Chronological Sequence (+30 points)
+                          Check Order Accuracy (+30 Points)
                         </button>
                       ) : (
                         <button
                           onClick={handleResetTimeline}
                           className="px-6 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl text-xs transition"
                         >
-                          Reorganize Sequence
+                          Reset Sequence
                         </button>
                       )}
                     </div>
@@ -1584,7 +1585,7 @@ export default function App() {
                 </div>
               )}
 
-              {/* SECCIÓN 3 — POST-LISTENING */}
+              {/* SECTION 3 — POST-LISTENING */}
               {activeTab === 'post' && (
                 <div className="space-y-8 animate-fadeIn">
                   
@@ -1608,44 +1609,47 @@ export default function App() {
                   </div>
 
                   {/* REFLEXIÓN Y DETECTOR DE ERRORES */}
-                  <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800/80 space-y-6">
+                  <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 space-y-6">
                     <div>
                       <span className="text-xs bg-teal-100 text-teal-700 px-2 py-0.5 rounded-full font-bold uppercase">Activity 1</span>
                       <h3 className="font-extrabold text-lg mt-1">Interactive Story Reflections</h3>
                       <p className="text-xs text-slate-400">
-                        Write your comments and reflections on Max's adventure in English. Your paragraph must be between 30 and 50 words.
+                        Answer these reflections about the story in your own words. Each submission must contain between 30 and 50 words.
                       </p>
                     </div>
 
                     <div className="space-y-6">
                       {REFLECTION_QUESTIONS.map(q => {
                         const feedback = reflectionFeedback[q.id];
-                        const text = reflectionTexts[q.id];
+                        const text = reflectionTexts[q.id] || '';
                         const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
                         return (
-                          <div key={q.id} className="p-4 bg-slate-50 dark:bg-slate-850/60 rounded-2xl border border-slate-100 dark:border-slate-800/80 space-y-3">
+                          <div key={q.id} className="p-4 bg-slate-50 dark:bg-slate-850/60 rounded-2xl border border-slate-100 dark:border-slate-805 space-y-3">
                             <span className="font-bold text-xs text-slate-400 block uppercase">Written Question Card</span>
                             <p className="font-bold text-sm text-slate-700 dark:text-slate-100">{q.question}</p>
                             
                             <textarea
                               value={text}
-                              onChange={(e) => setReflectionTexts({ ...reflectionTexts, [q.id]: e.target.value })}
-                              placeholder="Write your answer here in English..."
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setReflectionTexts(prev => ({ ...prev, [q.id]: val }));
+                              }}
+                              placeholder="Write your response here in English..."
                               className="w-full h-24 p-3 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-xs focus:ring-1 focus:ring-indigo-500 focus:outline-none"
                             />
 
                             <div className="flex justify-between items-center text-[11px] text-slate-400 font-bold">
-                              <span>Required limit: 30 - 50 words</span>
+                              <span>Limit: 30 - 50 words</span>
                               <span className={wordCount >= 30 && wordCount <= 50 ? 'text-emerald-500' : 'text-red-400'}>
-                                Current word count: {wordCount}
+                                Current Word Count: {wordCount}
                               </span>
                             </div>
 
                             {feedback && (
                               <div className={`p-3 rounded-xl border text-xs space-y-1.5 ${feedback.isValid ? 'bg-emerald-50 border-emerald-300 text-emerald-700 dark:bg-emerald-950/20' : 'bg-red-50 border-red-300 text-red-700 dark:bg-red-950/20'}`}>
                                 <div className="flex justify-between font-bold">
-                                  <span>{feedback.isValid ? "✓ Response Validated by the System" : "⚠ Syntax Warning"}</span>
-                                  {feedback.score !== undefined && <span>Score: {feedback.score}/100</span>}
+                                  <span>{feedback.isValid ? "✓ Grammatically Accepted" : "⚠ Grammar Advisory"}</span>
+                                  {feedback.score !== undefined && <span>Estimated Score: {feedback.score}/100</span>}
                                 </div>
                                 <p className="text-[11px] leading-relaxed">{feedback.feedback || feedback.message}</p>
                                 
@@ -1654,7 +1658,7 @@ export default function App() {
                                     <span className="font-bold block text-red-700">Suggestions from the Grammar Detective:</span>
                                     {feedback.errors.map((err, eIdx) => (
                                       <div key={eIdx}>
-                                        • Error found in <code className="bg-red-200 dark:bg-red-900 px-1 rounded font-bold">{err.error}</code>. Try writing <strong className="text-emerald-600">{err.fix}</strong>. ({err.desc})
+                                        • Error at <code className="bg-red-200 dark:bg-red-900 px-1 rounded font-bold">{err.error}</code>. Try using <strong className="text-emerald-600">{err.fix}</strong> instead. ({err.desc})
                                       </div>
                                     ))}
                                   </div>
@@ -1668,7 +1672,7 @@ export default function App() {
                                 disabled={wordCount === 0}
                                 className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition disabled:opacity-40"
                               >
-                                Analyze Written Response (+10 points)
+                                Analyze & Submit Grammar Card (+10 Points)
                               </button>
                             </div>
                           </div>
@@ -1681,13 +1685,13 @@ export default function App() {
                   <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800/80 space-y-6">
                     <div>
                       <span className="text-xs bg-cyan-100 text-cyan-700 px-2 py-0.5 rounded-full font-bold uppercase">Activity 2</span>
-                      <h3 className="font-extrabold text-lg mt-1">Grammar Classifier</h3>
-                      <p className="text-xs text-slate-400">Identify which grammatical role each of these keywords from the story fulfills.</p>
+                      <h3 className="font-extrabold text-lg mt-1">Language Detective Classification</h3>
+                      <p className="text-xs text-slate-400">Classify these keywords and verbs into their correct categories!</p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-3">
-                        <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">Key Terms</span>
+                        <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">Vocabulary Words</span>
                         <div className="space-y-2">
                           {DETECTIVE_WORDS.map(word => {
                             const currentClass = detectiveClassified[word.text];
@@ -1717,7 +1721,7 @@ export default function App() {
                       </div>
 
                       <div className="bg-slate-50 dark:bg-slate-850/80 p-4 rounded-2xl border border-slate-100 space-y-4">
-                        <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">Classification Boxes</span>
+                        <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">Classified Category Boxes</span>
                         
                         <div className="space-y-2 text-xs">
                           <div className="bg-white dark:bg-slate-800 p-2.5 rounded-xl border border-slate-100">
@@ -1753,17 +1757,16 @@ export default function App() {
                     <div className="pt-2 flex flex-wrap gap-2 justify-end">
                       {detectiveChecked && (
                         <div className="p-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-300 text-emerald-700 rounded-xl text-xs font-bold">
-                          ✓ Perfect verb and narrative connector identification registered!
+                          ✓ Perfect grammar classification registered! Badge Progress updated.
                         </div>
                       )}
-
                       {!detectiveChecked ? (
                         <button
                           onClick={handleVerifyDetective}
                           disabled={Object.keys(detectiveClassified).length < DETECTIVE_WORDS.length}
                           className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition disabled:opacity-40"
                         >
-                          Check Classifications (+20 points)
+                          Check Classifications (+20 Points)
                         </button>
                       ) : (
                         <button
@@ -1786,15 +1789,15 @@ export default function App() {
 
                     <div className="space-y-4 text-xs">
                       <div className="space-y-1">
-                        <label className="font-extrabold text-slate-400 block uppercase">1. Introducing the adventure:</label>
+                        <label className="font-extrabold text-slate-400 block uppercase">1. Setting the past scene:</label>
                         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-                          <span className="bg-indigo-100 text-indigo-700 px-2 py-1 rounded font-bold whitespace-nowrap">Last weekend, I</span>
+                          <span className="bg-indigo-100 dark:bg-indigo-950 text-indigo-700 px-2 py-1 rounded font-bold whitespace-nowrap">Last weekend, I</span>
                           <input
                             type="text"
                             value={adventureInputs.p1}
-                            onChange={(e) => setAdventureInputs({ ...adventureInputs, p1: e.target.value })}
+                            onChange={(e) => setAdventureInputs(prev => ({ ...prev, p1: e.target.value }))}
                             placeholder="e.g. visited my grandparents in the countryside."
-                            className="flex-1 w-full p-2 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 focus:outline-none"
+                            className="flex-1 w-full p-2 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-xs focus:outline-none"
                           />
                         </div>
                       </div>
@@ -1802,13 +1805,13 @@ export default function App() {
                       <div className="space-y-1">
                         <label className="font-extrabold text-slate-400 block uppercase">2. First events:</label>
                         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-                          <span className="bg-indigo-100 text-indigo-700 px-2 py-1 rounded font-bold whitespace-nowrap">First, I</span>
+                          <span className="bg-indigo-100 dark:bg-indigo-950 text-indigo-700 px-2 py-1 rounded font-bold whitespace-nowrap">First, I</span>
                           <input
                             type="text"
                             value={adventureInputs.p2}
-                            onChange={(e) => setAdventureInputs({ ...adventureInputs, p2: e.target.value })}
+                            onChange={(e) => setAdventureInputs(prev => ({ ...prev, p2: e.target.value }))}
                             placeholder="e.g. went hiking along the peaceful river."
-                            className="flex-1 w-full p-2 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 focus:outline-none"
+                            className="flex-1 w-full p-2 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-xs focus:outline-none"
                           />
                         </div>
                       </div>
@@ -1816,13 +1819,13 @@ export default function App() {
                       <div className="space-y-1">
                         <label className="font-extrabold text-slate-400 block uppercase">3. Unexpected twist or climax:</label>
                         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-                          <span className="bg-indigo-100 text-indigo-700 px-2 py-1 rounded font-bold whitespace-nowrap">Suddenly,</span>
+                          <span className="bg-indigo-100 dark:bg-indigo-950 text-indigo-700 px-2 py-1 rounded font-bold whitespace-nowrap">Suddenly,</span>
                           <input
                             type="text"
                             value={adventureInputs.p3}
-                            onChange={(e) => setAdventureInputs({ ...adventureInputs, p3: e.target.value })}
+                            onChange={(e) => setAdventureInputs(prev => ({ ...prev, p3: e.target.value }))}
                             placeholder="e.g. it started raining very heavily."
-                            className="flex-1 w-full p-2 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 focus:outline-none"
+                            className="flex-1 w-full p-2 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-xs focus:outline-none"
                           />
                         </div>
                       </div>
@@ -1830,13 +1833,13 @@ export default function App() {
                       <div className="space-y-1">
                         <label className="font-extrabold text-slate-400 block uppercase">4. Conclusion and finished story:</label>
                         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-                          <span className="bg-indigo-100 text-indigo-700 px-2 py-1 rounded font-bold whitespace-nowrap">In the end, I</span>
+                          <span className="bg-indigo-100 dark:bg-indigo-950 text-indigo-700 px-2 py-1 rounded font-bold whitespace-nowrap">In the end, I</span>
                           <input
                             type="text"
                             value={adventureInputs.p4}
-                            onChange={(e) => setAdventureInputs({ ...adventureInputs, p4: e.target.value })}
+                            onChange={(e) => setAdventureInputs(prev => ({ ...prev, p4: e.target.value }))}
                             placeholder="e.g. ran into a nearby café and enjoyed a warm tea."
-                            className="flex-1 w-full p-2 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 focus:outline-none"
+                            className="flex-1 w-full p-2 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-xs focus:outline-none"
                           />
                         </div>
                       </div>
@@ -1845,8 +1848,8 @@ export default function App() {
                     {adventureFeedback && (
                       <div className={`p-4 rounded-2xl border text-xs space-y-2 ${adventureFeedback.status === 'success' ? 'bg-emerald-50 border-emerald-300 text-emerald-800 dark:bg-emerald-950/20' : 'bg-red-50 border-red-300 text-red-800'}`}>
                         <div className="flex justify-between font-bold">
-                          <span>{adventureFeedback.status === 'success' ? "✓ Cohesive Narrative Composed Successfully!" : "⚠ Grammar Issues"}</span>
-                          {adventureFeedback.score && <span>Written Score: {adventureFeedback.score}/100</span>}
+                          <span>{adventureFeedback.status === 'success' ? "✓ Story Constructed Successfully!" : "⚠ Narrative Issues"}</span>
+                          {adventureFeedback.score && <span>Writing Score: {adventureFeedback.score}/100</span>}
                         </div>
                         {adventureFeedback.suggestions && adventureFeedback.suggestions.map((suggestion, sIdx) => (
                           <p key={sIdx} className="text-[11px] font-semibold leading-relaxed">• {suggestion}</p>
@@ -1868,7 +1871,7 @@ export default function App() {
                   <div className="mt-12 flex justify-center pb-8">
                     <button 
                       onClick={triggerFinalCelebration}
-                      className="flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 text-slate-950 font-black text-md rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all animate-bounce"
+                      className="flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 text-slate-955 font-black text-md rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all animate-bounce"
                     >
                       🎉 Finish Lesson & View My Results
                     </button>
@@ -1886,7 +1889,7 @@ export default function App() {
                       <span className="text-[10px] text-slate-400 uppercase tracking-widest font-black block">Listening Score</span>
                       <p className="text-3xl font-black text-indigo-600 dark:text-indigo-400 mt-1">{progress.listeningScore}%</p>
                       <div className="w-full bg-slate-100 dark:bg-slate-700 h-2 rounded-full overflow-hidden mt-3">
-                        <div className="bg-indigo-600 h-full rounded-full" style={{ width: `${progress.listeningScore}%` }} />
+                        <div className="bg-indigo-600 h-full rounded-full" style={{ width: `${progress.listeningScore}%` }}></div>
                       </div>
                     </div>
 
@@ -1894,7 +1897,7 @@ export default function App() {
                       <span className="text-[10px] text-slate-400 uppercase tracking-widest font-black block">Vocabulary Score</span>
                       <p className="text-3xl font-black text-cyan-600 dark:text-cyan-400 mt-1">{progress.vocabScore}%</p>
                       <div className="w-full bg-slate-100 dark:bg-slate-700 h-2 rounded-full overflow-hidden mt-3">
-                        <div className="bg-cyan-600 h-full rounded-full" style={{ width: `${progress.vocabScore}%` }} />
+                        <div className="bg-cyan-600 h-full rounded-full" style={{ width: `${progress.vocabScore}%` }}></div>
                       </div>
                     </div>
 
@@ -1902,7 +1905,7 @@ export default function App() {
                       <span className="text-[10px] text-slate-400 uppercase tracking-widest font-black block">Grammar Score</span>
                       <p className="text-3xl font-black text-emerald-600 dark:text-emerald-400 mt-1">{progress.grammarScore}%</p>
                       <div className="w-full bg-slate-100 dark:bg-slate-700 h-2 rounded-full overflow-hidden mt-3">
-                        <div className="bg-emerald-600 h-full rounded-full" style={{ width: `${progress.grammarScore}%` }} />
+                        <div className="bg-emerald-600 h-full rounded-full" style={{ width: `${progress.grammarScore}%` }}></div>
                       </div>
                     </div>
 
@@ -1910,14 +1913,14 @@ export default function App() {
                       <span className="text-[10px] text-slate-400 uppercase tracking-widest font-black block">Writing Score</span>
                       <p className="text-3xl font-black text-amber-600 dark:text-amber-400 mt-1">{progress.writingScore}%</p>
                       <div className="w-full bg-slate-100 dark:bg-slate-700 h-2 rounded-full overflow-hidden mt-3">
-                        <div className="bg-amber-600 h-full rounded-full" style={{ width: `${progress.writingScore}%` }} />
+                        <div className="bg-amber-600 h-full rounded-full" style={{ width: `${progress.writingScore}%` }}></div>
                       </div>
                     </div>
                   </div>
 
                   <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800/80 space-y-6">
                     <h3 className="font-extrabold text-lg flex items-center gap-2 text-indigo-600 dark:text-cyan-400">
-                      <Award className="text-amber-500" /> Achievements and Badges Collection
+                      <Award className="text-amber-500" /> Lesson Achievements & Badges
                     </h3>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1929,7 +1932,7 @@ export default function App() {
                             className={`p-4 rounded-2xl border transition-all flex items-start gap-4 ${
                               isUnlocked 
                                 ? 'bg-gradient-to-r from-indigo-50/40 to-cyan-50 border-cyan-500/20 shadow-sm' 
-                                : 'opacity-40 bg-slate-100 dark:bg-slate-800/20'
+                                : 'opacity-40 bg-slate-100 dark:bg-slate-850 border-transparent shadow-inner'
                             }`}
                           >
                             <span className="text-4xl">{b.icon}</span>
@@ -1954,14 +1957,14 @@ export default function App() {
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800/80 space-y-6 animate-fadeIn">
                   <div>
                     <h2 className="text-xl font-black">⚙️ Application Settings</h2>
-                    <p className="text-xs text-slate-400">Configure the interface, font size, and lesson sounds</p>
+                    <p className="text-xs text-slate-400">Configure accessibility, themes, and synthesis speech preferences</p>
                   </div>
 
                   <div className="space-y-4">
                     <div className="p-4 bg-slate-50 dark:bg-slate-850 rounded-xl flex items-center justify-between border">
                       <div>
-                        <span className="font-bold text-sm block">Dark / Light Theme</span>
-                        <p className="text-xs text-slate-400">Adjust the contrast to protect your eyes</p>
+                        <span className="font-bold text-sm block">Dark Theme Mode</span>
+                        <p className="text-xs text-slate-400">Reduce glare and optimize for dark environments</p>
                       </div>
                       <button
                         onClick={() => { setTheme(theme === 'dark' ? 'light' : 'dark'); playSynthSound('click', isMuted); }}
@@ -1974,20 +1977,20 @@ export default function App() {
                     <div className="p-4 bg-slate-50 dark:bg-slate-850 rounded-xl flex items-center justify-between border">
                       <div>
                         <span className="font-bold text-sm block">Sound Effects</span>
-                        <p className="text-xs text-slate-400">Interactive sounds when answering questions and earning stars</p>
+                        <p className="text-xs text-slate-400">Enable interactive audio clicks and success notifications</p>
                       </div>
                       <button
-                        onClick={() => { setIsMuted(!isMuted); playSynthSound('click', !isMuted); }}
+                        onClick={toggleAudioMute}
                         className={`px-4 py-2 transition rounded-xl text-xs font-bold ${isMuted ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'}`}
                       >
-                        {isMuted ? '🔈 Audio Disabled' : '🔊 Audio Enabled'}
+                        {isMuted ? '🔈 Sound Muted' : '🔊 Sound Enabled'}
                       </button>
                     </div>
 
                     <div className="p-4 bg-slate-50 dark:bg-slate-850 rounded-xl flex items-center justify-between border">
                       <div>
-                        <span className="font-bold text-sm block">Font Size</span>
-                        <p className="text-xs text-slate-400">Adjust the font size to make reading easier</p>
+                        <span className="font-bold text-sm block">Adjustable Font Size</span>
+                        <p className="text-xs text-slate-400">Increase or decrease text readability throughout activities</p>
                       </div>
                       <div className="flex gap-1.5">
                         {['sm', 'base', 'lg'].map(size => (
@@ -2005,40 +2008,13 @@ export default function App() {
                     <div className="p-4 bg-red-50/50 rounded-xl flex items-center justify-between border border-red-200">
                       <div>
                         <span className="font-bold text-sm block text-red-600">Reset Lesson Progress</span>
-                        <p className="text-xs text-red-400">Delete all your history from local storage to start over</p>
+                        <p className="text-xs text-red-400">Clear all local storage points and badges to start over</p>
                       </div>
                       <button
-                        onClick={() => {
-                          if(confirm("Are you sure you want to reset your progress? You will lose all your scores and badges.")) {
-                            setProgress({
-                              points: 0,
-                              xp: 0,
-                              completedActivities: [],
-                              badges: [],
-                              predictionsSelected: [],
-                              keywordTaps: [],
-                              grammarScore: 0,
-                              vocabScore: 0,
-                              listeningScore: 0,
-                              writingScore: 0,
-                              streak: 1,
-                              timeSpent: 0
-                            });
-                            setVocabMatches({});
-                            setVocabFinished(false);
-                            setPredictionsSubmitted(false);
-                            setMcqAnswers({});
-                            setMcqSubmitted(false);
-                            setTimelineChecked(false);
-                            setReflectionFeedback({});
-                            setAdventureFeedback(null);
-                            setAdventureInputs({ p1: '', p2: '', p3: '', p4: '' });
-                            playSynthSound('incorrect', isMuted);
-                          }
-                        }}
+                        onClick={resetAllLabProgress}
                         className="px-4 py-2 bg-red-600 text-white hover:bg-red-700 transition rounded-xl text-xs font-bold"
                       >
-                        Reset All
+                        Reset All Data
                       </button>
                     </div>
 
@@ -2091,7 +2067,7 @@ export default function App() {
             </div>
             
             <div className="space-y-2">
-              <span className="text-[10px] uppercase bg-cyan-400 text-indigo-950 px-3 py-1 rounded-full font-black tracking-widest">
+              <span className="text-[10px] uppercase bg-cyan-400 text-indigo-955 px-3 py-1 rounded-full font-black tracking-widest">
                 Adventure Completed
               </span>
               <h2 className={`text-2xl sm:text-3xl font-black tracking-tight ${performanceTitleColor}`}>
@@ -2172,7 +2148,7 @@ export default function App() {
                 setActiveTab('dashboard');
                 triggerToast("Welcome to your scorecard dashboard! 📊", "🏆");
               }}
-              className="w-full py-3.5 bg-gradient-to-r from-emerald-400 to-teal-500 hover:from-emerald-300 hover:to-teal-400 text-slate-950 font-black rounded-2xl shadow-xl transition hover:scale-105 active:scale-95"
+              className="w-full py-3.5 bg-gradient-to-r from-emerald-400 to-teal-500 hover:from-emerald-300 hover:to-teal-400 text-slate-955 font-black rounded-2xl shadow-xl transition hover:scale-105 active:scale-95"
             >
               Go to Performance Dashboard 📊
             </button>
@@ -2195,23 +2171,6 @@ export default function App() {
       <footer className="text-center py-8 text-xs text-slate-400 mt-12 border-t border-slate-100 dark:border-slate-800">
         <p>© 2026 Past Adventures Listening Lab. Interactive practice of simple past in English.</p>
       </footer>
-
-      {/* COMPACT FLOATING CSS ANIMATIONS */}
-      <style>{`
-        @keyframes floatUp {
-          0% {
-            transform: translateY(100%) rotate(0deg);
-            opacity: 1;
-          }
-          100% {
-            transform: translateY(-110vh) rotate(360deg);
-            opacity: 0;
-          }
-        }
-        .animate-floatUp {
-          animation: floatUp linear infinite;
-        }
-      `}</style>
 
     </div>
   );
