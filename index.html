@@ -1,0 +1,2218 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  Play, Pause, RotateCcw, Volume2, VolumeX, Sparkles, Award, 
+  BookOpen, CheckCircle, AlertCircle, RefreshCw, ChevronRight, 
+  ArrowRight, Shield, Clock, BarChart2, Star, Settings, User, 
+  Map, HelpCircle, Eye, FileText, Check, AlertTriangle, Moon, Sun,
+  Smartphone, Tablet, Laptop, HelpCircle as HelpIcon, ArrowUpRight
+} from 'lucide-react';
+
+// ==========================================
+// 1. CONSTANTS, VOCABULARY & STORY DATA
+// ==========================================
+
+const VOCAB_ITEMS = [
+  { id: 'v1', word: 'Last weekend', meaning: 'Refers to a past time', category: 'time', icon: '📅' },
+  { id: 'v2', word: 'Mountain', meaning: 'A very high natural elevation of land', category: 'noun', icon: '🏔️' },
+  { id: 'v3', word: 'Jacket', meaning: 'A piece of clothing worn on the upper body', category: 'noun', icon: '🧥' },
+  { id: 'v4', word: 'In the end', meaning: 'At the conclusion', category: 'connector', icon: '🏁' },
+  { id: 'v5', word: 'Go', meaning: 'Went', category: 'verb', icon: '🚶' },
+  { id: 'v6', word: 'Café', meaning: 'A place where people drink coffee and eat snacks', category: 'noun', icon: '☕' },
+  { id: 'v7', word: 'Lose', meaning: 'Lost', category: 'verb', icon: '🗺️' },
+  { id: 'v8', word: 'First', meaning: 'The first event', category: 'connector', icon: '1️⃣' },
+  { id: 'v9', word: 'Suddenly', meaning: 'An unexpected event happened', category: 'connector', icon: '⚡' },
+  { id: 'v10', word: 'Buy', meaning: 'Bought', category: 'verb', icon: '🛍️' },
+];
+
+const PREDICTIONS = [
+  { id: 'p1', text: 'It was sunny all day.', correct: false, bonus: 'Actually, it started raining unexpectedly!' },
+  { id: 'p2', text: 'Something unexpected happened.', correct: true, bonus: 'Spot on! The storm hit and they got lost.' },
+  { id: 'p3', text: 'They got lost.', correct: true, bonus: 'Correct! They lost their map in the wind.' },
+  { id: 'p4', text: 'They met an animal.', correct: false, bonus: 'They didn’t encounter any animals, just a heavy rain.' },
+];
+
+const TRANSCRIPT = [
+  { speaker: 'Leo', text: "[Friendly and slow] Hi Max! How was your weekend?" },
+  { speaker: 'Max', text: "[Sighs slightly, speaking slowly] Oh, hi Leo. Well... I had a very interesting experience last Saturday." },
+  { speaker: 'Leo', text: "[Curious] Really? What happened?" },
+  { speaker: 'Max', text: "[Narrating carefully] Last weekend, I went to the mountains with my brother. First, the weather was beautiful, so we started to walk up the mountain. Then, after one hour, it suddenly changed." },
+  { speaker: 'Leo', text: "[Surprised] Oh no! Did it rain?" },
+  { speaker: 'Max', text: "[Disappointed] Yes, it did. It rained a lot! Suddenly, we realized we didn't have our jackets. We lost them in the car!" },
+  { speaker: 'Leo', text: "[Worried] That sounds terrible! What did you do?" },
+  { speaker: 'Max', text: "[Laughs softly] Well, the rain didn't stop, so we decided to run back. We didn't see the beautiful view at the top, but in the end, we went to a café and bought a giant hot chocolate." },
+  { speaker: 'Leo', text: "[Smiling, cheerful] That was a smart choice. I think a warm café is always better than a cold mountain!" },
+  { speaker: 'Max', text: "[Smiles, speaking slowly] Yes, you are right! After that, we talked for hours in the café and we didn't think about the bad weather anymore." },
+  { speaker: 'Leo', text: "[Thoughtful] That is true. Sometimes, a bad experience can turn into a good memory with a friend or brother." },
+  { speaker: 'Max', text: "[Nods in agreement] Exactly. Finally, we drove back home in the evening, but we didn't feel sad because the hot chocolate was amazing!" },
+  { speaker: 'Leo', text: "[Laughs gently] I agree! Next time, please check the weather before you go to the mountains." }
+];
+
+const MCQ_QUESTIONS = [
+  {
+    id: 1,
+    question: "Where did Max go last weekend?",
+    options: ["To the beach", "To the mountains", "To a big city", "To a museum"],
+    correct: 1,
+    explanation: "Max says: 'Last weekend, I went to the mountains with my brother.'"
+  },
+  {
+    id: 2,
+    question: "Why did Max and his brother run back?",
+    options: ["Because they saw a bear", "Because it rained a lot and they realized they lost their jackets in the car", "Because they were late for dinner", "Because they lost their money"],
+    correct: 1,
+    explanation: "Max says: 'It rained a lot! Suddenly, we realized we didn't have our jackets. We lost them in the car!'"
+  },
+  {
+    id: 3,
+    question: "What did they buy?",
+    options: ["A giant hot chocolate", "A new warm jacket", "A new map", "Some delicious coffee"],
+    correct: 0,
+    explanation: "They entered a café and bought a giant hot chocolate."
+  },
+  {
+    id: 4,
+    question: "What happened inside the café?",
+    options: ["They got lost again", "They bought dry jackets", "They talked for hours and didn't think about the bad weather", "They slept"],
+    correct: 2,
+    explanation: "Max says: 'After that, we talked for hours in the café and we didn't think about the bad weather anymore.'"
+  },
+  {
+    id: 5,
+    question: "What advice did Leo give Max in the end?",
+    options: ["Never go hiking with your brother again", "Next time, please check the weather before you go to the mountains", "You must always carry three jackets", "You should stay home next Saturday"],
+    correct: 1,
+    explanation: "Leo advises in the end: 'Next time, please check the weather before you go to the mountains.'"
+  }
+];
+
+const TIMELINE_EVENTS = [
+  { id: 't1', text: "Max and his brother went to the mountains.", order: 0 },
+  { id: 't2', text: "The weather changed and it started raining a lot.", order: 1 },
+  { id: 't3', text: "They realized they lost their jackets in the car.", order: 2 },
+  { id: 't4', text: "They decided to run back down.", order: 3 },
+  { id: 't5', text: "They went to a café and bought a giant hot chocolate.", order: 4 },
+  { id: 't6', text: "They talked for hours and then drove back home.", order: 5 }
+];
+
+const REFLECTION_QUESTIONS = [
+  { id: 'r1', question: "Which part of the story was the easiest for you to understand, and why?" },
+  { id: 'r2', question: "Which part was the most difficult, and what made it tricky?" },
+  { id: 'r3', question: "What can you do to improve your listening and narrative English next time?" }
+];
+
+const DETECTIVE_WORDS = [
+  { text: 'started', type: 'regular' },
+  { text: 'talked', type: 'regular' },
+  { text: 'went', type: 'irregular' },
+  { text: 'bought', type: 'irregular' },
+  { text: 'first', type: 'connector' },
+  { text: 'suddenly', type: 'connector' },
+  { text: 'in the end', type: 'connector' }
+];
+
+const BADGES = [
+  { id: 'b1', name: 'Story Explorer', desc: 'Completed Pre-Listening challenges', icon: '🧭', color: 'from-amber-400 to-orange-500' },
+  { id: 'b2', name: 'Listening Detective', desc: 'Found hidden keywords & audio secrets', icon: '🔍', color: 'from-cyan-400 to-blue-500' },
+  { id: 'b3', name: 'Narrative Master', desc: 'Categorized the past tenses flawlessly', icon: '⚡', color: 'from-emerald-400 to-teal-500' },
+  { id: 'b4', name: 'A2 Adventure Champion', desc: 'Finished reflection with flying colors', icon: '👑', color: 'from-purple-500 to-pink-500' }
+];
+
+// ==========================================
+// 2. SYNTHESIZED SOUND EFFECTS UTILITY
+// ==========================================
+const playSynthSound = (type, isMuted) => {
+  if (isMuted) return;
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+    
+    switch (type) {
+      case 'click': {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.setValueAtTime(600, ctx.currentTime);
+        gain.gain.setValueAtTime(0.08, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.1);
+        break;
+      }
+      case 'correct': {
+        const notes = [261.63, 329.63, 392.00, 523.25]; // Harmonious C E G C notes
+        notes.forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.08);
+          gain.gain.setValueAtTime(0.08, ctx.currentTime + idx * 0.08);
+          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + idx * 0.08 + 0.15);
+          osc.start(ctx.currentTime + idx * 0.08);
+          osc.stop(ctx.currentTime + idx * 0.08 + 0.15);
+        });
+        break;
+      }
+      case 'incorrect': {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.setValueAtTime(220, ctx.currentTime);
+        osc.frequency.linearRampToValueAtTime(110, ctx.currentTime + 0.25);
+        gain.gain.setValueAtTime(0.12, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.25);
+        break;
+      }
+      case 'badge': {
+        const base = 440; // Base note A4
+        [1, 1.25, 1.5, 1.875, 2].forEach((mult, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(base * mult, ctx.currentTime + idx * 0.1);
+          gain.gain.setValueAtTime(0.1, ctx.currentTime + idx * 0.1);
+          gain.gain.exponentialRampToValueAtTime(0.005, ctx.currentTime + idx * 0.1 + 0.3);
+          osc.start(ctx.currentTime + idx * 0.1);
+          osc.stop(ctx.currentTime + idx * 0.1 + 0.3);
+        });
+        break;
+      }
+      case 'victory': {
+        // Brassy, heroic trumpet fanfare sound
+        const notes = [523.25, 523.25, 523.25, 523.25, 659.25, 587.33, 659.25, 783.99]; 
+        const durations = [0.1, 0.1, 0.1, 0.2, 0.15, 0.15, 0.15, 0.45];
+        let time = ctx.currentTime;
+        notes.forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(freq, time);
+          gain.gain.setValueAtTime(0.06, time);
+          gain.gain.exponentialRampToValueAtTime(0.001, time + durations[idx] - 0.02);
+          osc.start(time);
+          osc.stop(time + durations[idx]);
+          time += durations[idx];
+        });
+        break;
+      }
+      default:
+        break;
+    }
+  } catch (e) {
+    console.warn("Web Audio API is restricted by browser policy.", e);
+  }
+};
+
+// ==========================================
+// 3. MAIN COMPONENT DEFINITION
+// ==========================================
+export default function App() {
+  // Device view preview configurations and global display states
+  const [deviceView, setDeviceView] = useState('desktop'); // 'mobile', 'tablet', 'desktop'
+  const [theme, setTheme] = useState('light'); // 'light', 'dark'
+  const [fontSize, setFontSize] = useState('base'); // 'sm', 'base', 'lg'
+  const [isMuted, setIsMuted] = useState(false);
+  const [activeTab, setActiveTab] = useState('home'); // 'home', 'pre', 'while', 'post', 'dashboard', 'settings'
+  const [availableVoices, setAvailableVoices] = useState([]);
+  const [showCelebration, setShowCelebration] = useState(false);
+
+  // Asynchronous browser voice initialization
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      const updateVoices = () => {
+        const voices = window.speechSynthesis.getVoices();
+        setAvailableVoices(voices);
+      };
+      updateVoices();
+      window.speechSynthesis.onvoiceschanged = updateVoices;
+    }
+  }, []);
+
+  // Student progress loaded from local storage
+  const [progress, setProgress] = useState(() => {
+    try {
+      const saved = localStorage.getItem('listening_lab_progress');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return {
+      points: 0,
+      xp: 0,
+      completedActivities: [],
+      badges: [],
+      predictionsSelected: [],
+      keywordTaps: [],
+      grammarScore: 0,
+      vocabScore: 0,
+      listeningScore: 0,
+      writingScore: 0,
+      streak: 3,
+      timeSpent: 12,
+    };
+  });
+
+  // Save progress effect
+  useEffect(() => {
+    try {
+      localStorage.setItem('listening_lab_progress', JSON.stringify(progress));
+    } catch (e) {}
+  }, [progress]);
+
+  // Audio Player states
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  const [audioProgress, setAudioProgress] = useState(0);
+  const [activeSpeechIndex, setActiveSpeechIndex] = useState(-1);
+
+  // Mutable refs to prevent Stale Closures and audio playback loops
+  const activeSpeechIndexRef = useRef(-1);
+  const isPlayingRef = useRef(false);
+  const audioTimeoutRef = useRef(null);
+
+  // Synchronize playback state ref
+  useEffect(() => {
+    isPlayingRef.current = isPlaying;
+    return () => {
+      if (audioTimeoutRef.current) clearTimeout(audioTimeoutRef.current);
+    };
+  }, [isPlaying]);
+
+  // Vocabulary matching activity states
+  const [vocabMatches, setVocabMatches] = useState({});
+  const [selectedWord, setSelectedWord] = useState(null);
+  const [matchingError, setMatchingError] = useState(null);
+  const [vocabFinished, setVocabFinished] = useState(false);
+
+  // Story prediction module states
+  const [predictionsSubmitting, setPredictionsSubmitting] = useState(false);
+  const [predictionsSubmitted, setPredictionsSubmitted] = useState(false);
+
+  // MCQ Mission states
+  const [mcqAnswers, setMcqAnswers] = useState({});
+  const [mcqSubmitted, setMcqSubmitted] = useState(false);
+
+  // Chronology timeline states
+  const [timelineOrder, setTimelineOrder] = useState(() => 
+    [...TIMELINE_EVENTS].sort(() => Math.random() - 0.5)
+  );
+  const [timelineChecked, setTimelineChecked] = useState(false);
+  const [timelineSuccess, setTimelineSuccess] = useState(false);
+
+  // Post-listening reflection states
+  const [reflectionTexts, setReflectionTexts] = useState({ r1: '', r2: '', r3: '' });
+  const [reflectionFeedback, setReflectionFeedback] = useState({});
+
+  // Grammar classification states
+  const [detectiveClassified, setDetectiveClassified] = useState({});
+  const [detectiveChecked, setDetectiveChecked] = useState(false);
+
+  // Creative writing adventure states
+  const [adventureInputs, setAdventureInputs] = useState({ p1: '', p2: '', p3: '', p4: '' });
+  const [adventureFeedback, setAdventureFeedback] = useState(null);
+
+  // Achievements Toast notification state
+  const [toast, setToast] = useState(null);
+
+  const triggerToast = (message, icon) => {
+    setToast({ message, icon });
+    setTimeout(() => setToast(null), 4000);
+  };
+
+  const handlePointsGain = (amount, activityKey) => {
+    if (progress.completedActivities.includes(activityKey)) return;
+    
+    setProgress(prev => {
+      const nextPoints = prev.points + amount;
+      const nextXp = prev.xp + amount * 10;
+      const nextCompleted = [...prev.completedActivities, activityKey];
+      
+      let vocabBonus = prev.vocabScore;
+      let listeningBonus = prev.listeningScore;
+      let grammarBonus = prev.grammarScore;
+      let writingBonus = prev.writingScore;
+
+      if (activityKey === 'vocab') vocabBonus = 100;
+      if (activityKey === 'prediction') vocabBonus = Math.min(100, vocabBonus + 20);
+      if (activityKey === 'mcq') listeningBonus = 100;
+      if (activityKey === 'timeline') listeningBonus = Math.min(100, listeningBonus + 50);
+      if (activityKey === 'detective') grammarBonus = 100;
+      if (activityKey.startsWith('reflection')) writingBonus = Math.min(100, writingBonus + 30);
+      if (activityKey === 'adventure') writingBonus = Math.min(100, writingBonus + 50);
+
+      const newBadges = [...prev.badges];
+      if (activityKey === 'vocab' && !newBadges.includes('b1')) {
+        newBadges.push('b1');
+        setTimeout(() => {
+          playSynthSound('badge', isMuted);
+          triggerToast("Unlocked Badge: Story Explorer! 🧭", "🧭");
+        }, 1200);
+      }
+      if (activityKey === 'timeline' && !newBadges.includes('b2')) {
+        newBadges.push('b2');
+        setTimeout(() => {
+          playSynthSound('badge', isMuted);
+          triggerToast("Unlocked Badge: Listening Detective! 🔍", "🔍");
+        }, 1200);
+      }
+      if (activityKey === 'detective' && !newBadges.includes('b3')) {
+        newBadges.push('b3');
+        setTimeout(() => {
+          playSynthSound('badge', isMuted);
+          triggerToast("Unlocked Badge: Narrative Master! ⚡", "⚡");
+        }, 1200);
+      }
+      if (activityKey === 'adventure' && !newBadges.includes('b4')) {
+        newBadges.push('b4');
+        setTimeout(() => {
+          playSynthSound('badge', isMuted);
+          triggerToast("Unlocked Badge: A2 Adventure Champion! 👑", "👑");
+        }, 1200);
+      }
+
+      return {
+        ...prev,
+        points: nextPoints,
+        xp: nextXp,
+        completedActivities: nextCompleted,
+        badges: newBadges,
+        vocabScore: vocabBonus,
+        listeningScore: listeningBonus,
+        grammarScore: grammarBonus,
+        writingScore: writingBonus
+      };
+    });
+  };
+
+  // ==========================================
+  // AUDIO SPEECH SIMULATION SYSTEM
+  // ==========================================
+  const speakSimulation = (text, speaker, onEndCallback) => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      
+      // 1. Strictly strip speaker prefix ("Max:", "Leo:")
+      let cleanedText = text.replace(/^(Max|Leo|Narrador):\s*/i, '').trim();
+      
+      // 2. Strip brackets and actions like [Sighs] so they are not spoken aloud
+      cleanedText = cleanedText.replace(/\[.*?\]/g, '').trim();
+      
+      const utterance = new SpeechSynthesisUtterance(cleanedText);
+      const englishVoices = availableVoices.filter(v => v.lang.toLowerCase().startsWith('en'));
+
+      if (speaker === 'Max') {
+        // Max Profile: UK English, expressive, warm, clear tempo customized for A2 English learners
+        utterance.pitch = 0.94;
+        utterance.rate = 0.81 * playbackSpeed;
+        
+        const maxVoice = englishVoices.find(v => {
+          const name = v.name.toLowerCase();
+          return (name.includes('uk') || name.includes('gb') || name.includes('united kingdom')) && 
+                 (name.includes('natural') || name.includes('neural') || name.includes('male') || name.includes('david'));
+        }) || englishVoices.find(v => v.name.toLowerCase().includes('uk')) || englishVoices.find(v => v.name.toLowerCase().includes('male')) || englishVoices[0];
+
+        if (maxVoice) utterance.voice = maxVoice;
+      } else {
+        // Leo Profile: US English, friendly, cheerful, clear conversational intonation
+        utterance.pitch = 1.08;
+        utterance.rate = 0.87 * playbackSpeed;
+        
+        const leoVoice = englishVoices.find(v => {
+          const name = v.name.toLowerCase();
+          return name.includes('us') && 
+                 (name.includes('natural') || name.includes('neural') || name.includes('google') || name.includes('zira') || name.includes('samantha') || name.includes('female'));
+        }) || englishVoices.find(v => v.name.toLowerCase().includes('us')) || englishVoices[1] || englishVoices[0];
+
+        if (leoVoice) utterance.voice = leoVoice;
+      }
+
+      utterance.onend = () => {
+        if (onEndCallback) onEndCallback();
+      };
+
+      utterance.onerror = () => {
+        if (onEndCallback) onEndCallback();
+      };
+
+      window.speechSynthesis.speak(utterance);
+    } else {
+      if (onEndCallback) onEndCallback();
+    }
+  };
+
+  const playCurrentSegment = (index) => {
+    if (index >= TRANSCRIPT.length) {
+      setIsPlaying(false);
+      setActiveSpeechIndex(-1);
+      activeSpeechIndexRef.current = -1;
+      setAudioProgress(100);
+      return;
+    }
+
+    if (!isPlayingRef.current) return;
+
+    setActiveSpeechIndex(index);
+    activeSpeechIndexRef.current = index;
+    setAudioProgress((index / TRANSCRIPT.length) * 100);
+
+    const line = TRANSCRIPT[index];
+    speakSimulation(line.text, line.speaker, () => {
+      if (!isPlayingRef.current) return;
+
+      // Realistic 900ms conversational turn pause
+      const pauseTimeout = setTimeout(() => {
+        if (!isPlayingRef.current) return;
+        playCurrentSegment(index + 1);
+      }, 900 / playbackSpeed);
+
+      audioTimeoutRef.current = pauseTimeout;
+    });
+  };
+
+  const handleAudioPlayToggle = () => {
+    playSynthSound('click', isMuted);
+    if (isPlaying) {
+      setIsPlaying(false);
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+      if (audioTimeoutRef.current) clearTimeout(audioTimeoutRef.current);
+    } else {
+      setIsPlaying(true);
+      isPlayingRef.current = true;
+      const startIndex = activeSpeechIndex === -1 || activeSpeechIndex >= TRANSCRIPT.length ? 0 : activeSpeechIndex;
+      playCurrentSegment(startIndex);
+    }
+  };
+
+  const handleAudioReset = () => {
+    playSynthSound('click', isMuted);
+    setIsPlaying(false);
+    isPlayingRef.current = false;
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    if (audioTimeoutRef.current) clearTimeout(audioTimeoutRef.current);
+    setAudioProgress(0);
+    setActiveSpeechIndex(-1);
+    activeSpeechIndexRef.current = -1;
+  };
+
+  const handleKeywordTap = (kw) => {
+    const term = kw.toLowerCase();
+    if (progress.keywordTaps.includes(term)) return;
+    
+    playSynthSound('correct', isMuted);
+    setProgress(prev => ({
+      ...prev,
+      keywordTaps: [...prev.keywordTaps, term],
+    }));
+    triggerToast(`Found keyword: ${kw}! (+15 XP) ✨`, "⚡");
+    
+    const required = ['suddenly', 'jacket', 'mountain', 'café', 'hot chocolate'];
+    const currentTapped = [...progress.keywordTaps, term];
+    const foundAll = required.every(r => currentTapped.includes(r));
+    if (foundAll) {
+      handlePointsGain(15, 'keyword_taps_bonus');
+    }
+  };
+
+  // ==========================================
+  // VOCABULARY MATCHING HANDLERS
+  // ==========================================
+  const handleSelectWord = (word) => {
+    playSynthSound('click', isMuted);
+    setSelectedWord(word);
+    setMatchingError(null);
+  };
+
+  const handleSelectMeaning = (meaningItem) => {
+    if (!selectedWord) {
+      setMatchingError("Select a word card first!");
+      return;
+    }
+    
+    if (selectedWord.meaning === meaningItem.meaning) {
+      playSynthSound('correct', isMuted);
+      const updatedMatches = { ...vocabMatches, [selectedWord.id]: meaningItem.id };
+      setVocabMatches(updatedMatches);
+      setSelectedWord(null);
+      setMatchingError(null);
+
+      if (Object.keys(updatedMatches).length === VOCAB_ITEMS.length) {
+        setVocabFinished(true);
+        handlePointsGain(10, 'vocab');
+        triggerToast("Perfect! You matched all vocabulary terms correctly. 🏔️", "🎓");
+      }
+    } else {
+      playSynthSound('incorrect', isMuted);
+      setMatchingError(`Incorrect! Try matching "${selectedWord.word}" with another definition.`);
+    }
+  };
+
+  const handleResetVocab = () => {
+    playSynthSound('click', isMuted);
+    setVocabMatches({});
+    setSelectedWord(null);
+    setMatchingError(null);
+    setVocabFinished(false);
+  };
+
+  // ==========================================
+  // PREDICTIONS HANDLERS
+  // ==========================================
+  const handleTogglePrediction = (id) => {
+    if (predictionsSubmitted) return;
+    playSynthSound('click', isMuted);
+    setProgress(prev => {
+      const active = prev.predictionsSelected.includes(id);
+      const nextSel = active 
+        ? prev.predictionsSelected.filter(x => x !== id)
+        : [...prev.predictionsSelected, id];
+      return { ...prev, predictionsSelected: nextSel };
+    });
+  };
+
+  const handleReviewPredictions = () => {
+    if (progress.predictionsSelected.length === 0) return;
+    setPredictionsSubmitting(true);
+    setTimeout(() => {
+      playSynthSound('correct', isMuted);
+      setPredictionsSubmitted(true);
+      setPredictionsSubmitting(false);
+      handlePointsGain(10, 'prediction');
+    }, 1000);
+  };
+
+  // ==========================================
+  // MCQ HANDLERS
+  // ==========================================
+  const handleSelectMcq = (qId, optionIdx) => {
+    if (mcqSubmitted) return;
+    playSynthSound('click', isMuted);
+    setMcqAnswers(prev => ({ ...prev, [qId]: optionIdx }));
+  };
+
+  const handleSubmitMcq = () => {
+    playSynthSound('correct', isMuted);
+    setMcqSubmitted(true);
+    let correctCount = 0;
+    MCQ_QUESTIONS.forEach(q => {
+      if (mcqAnswers[q.id] === q.correct) correctCount++;
+    });
+    const finalListeningScore = Math.round((correctCount / MCQ_QUESTIONS.length) * 100);
+    setProgress(prev => ({
+      ...prev,
+      listeningScore: finalListeningScore
+    }));
+    handlePointsGain(20, 'mcq');
+  };
+
+  // ==========================================
+  // TIMELINE EVENT SEQUENCE HANDLERS
+  // ==========================================
+  const moveTimelineItem = (index, direction) => {
+    if (timelineChecked) return;
+    playSynthSound('click', isMuted);
+    const newItems = [...timelineOrder];
+    const targetIdx = index + direction;
+    if (targetIdx < 0 || targetIdx >= newItems.length) return;
+    
+    const temp = newItems[index];
+    newItems[index] = newItems[targetIdx];
+    newItems[targetIdx] = temp;
+    setTimelineOrder(newItems);
+  };
+
+  const handleVerifyTimeline = () => {
+    const isCorrect = timelineOrder.every((item, idx) => item.order === idx);
+    setTimelineChecked(true);
+    setTimelineSuccess(isCorrect);
+    if (isCorrect) {
+      playSynthSound('correct', isMuted);
+      handlePointsGain(30, 'timeline');
+      triggerToast("Excellent work! You ordered the events chronologically. +30 pts!", "📅");
+    } else {
+      playSynthSound('incorrect', isMuted);
+    }
+  };
+
+  const handleResetTimeline = () => {
+    playSynthSound('click', isMuted);
+    setTimelineOrder([...TIMELINE_EVENTS].sort(() => Math.random() - 0.5));
+    setTimelineChecked(false);
+    setTimelineSuccess(false);
+  };
+
+  // ==========================================
+  // RULE-BASED ENGLISH GRAMMAR DETECTIVE
+  // ==========================================
+  const analyzeGrammar = (text) => {
+    const words = text.trim().split(/\s+/).filter(Boolean);
+    const wordCount = words.length;
+    
+    let errors = [];
+    let score = 100;
+
+    if (wordCount < 30) {
+      return { isValid: false, message: `Response too short! Please write at least 30 words. (Current word count: ${wordCount})` };
+    }
+    if (wordCount > 50) {
+      return { isValid: false, message: `Response too long! Limit your narrative to 50 words. (Current word count: ${wordCount})` };
+    }
+
+    const lower = text.toLowerCase();
+
+    // A2 simple past grammar checks
+    const commonRegularPastFails = ['goed', 'buyed', 'losed', 'runned', 'catched', 'taked', 'maked'];
+    commonRegularPastFails.forEach(badVerbs => {
+      if (lower.includes(badVerbs)) {
+        errors.push({
+          error: badVerbs,
+          fix: badVerbs === 'goed' ? 'went' : badVerbs === 'buyed' ? 'bought' : 'lost/ran',
+          desc: "Do not add '-ed' to irregular verbs. Use their distinct past form."
+        });
+        score -= 15;
+      }
+    });
+
+    if (lower.includes('we was') || lower.includes('they was') || lower.includes('you was')) {
+      errors.push({
+        error: 'was with plural subjects',
+        fix: 'were',
+        desc: "Use 'were' instead of 'was' for plural subjects (we, they, you)."
+      });
+      score -= 15;
+    }
+
+    const connectorsFound = ['first', 'suddenly', 'in the end', 'then', 'because', 'but', 'so'].filter(c => lower.includes(c));
+    if (connectorsFound.length < 2) {
+      errors.push({
+        error: 'Missing sequence connectors',
+        fix: 'First, suddenly, in the end, because',
+        desc: "To connect your sentences logically at level A2, try using at least two connectors."
+      });
+      score -= 10;
+    }
+
+    const pastVerbsFound = ['went', 'started', 'lost', 'ran', 'entered', 'bought', 'talked', 'had'].filter(v => lower.includes(v));
+    if (pastVerbsFound.length === 0) {
+      errors.push({
+        error: 'No past tense verbs identified',
+        fix: 'went, bought, started, etc.',
+        desc: "Make sure to use correct simple past verbs to describe completed past experiences."
+      });
+      score -= 10;
+    }
+
+    return {
+      isValid: true,
+      wordCount,
+      errors,
+      score: Math.max(50, score),
+      feedback: errors.length === 0 
+        ? "Excellent structure! Flawless use of simple past tenses and connectors." 
+        : "Good attempt expressing your thoughts, but check the irregular verb rules."
+    };
+  };
+
+  const handleReflectionSubmit = (qId) => {
+    const text = reflectionTexts[qId];
+    const analysis = analyzeGrammar(text);
+    
+    setReflectionFeedback(prev => ({
+      ...prev,
+      [qId]: analysis
+    }));
+
+    if (analysis.isValid) {
+      playSynthSound('correct', isMuted);
+      handlePointsGain(10, `reflection_${qId}`);
+    } else {
+      playSynthSound('incorrect', isMuted);
+    }
+  };
+
+  // ==========================================
+  // GRAMMAR CLASSIFICATION GAMEHANDLERS
+  // ==========================================
+  const handleClassifyDetective = (word, category) => {
+    if (detectiveChecked) return;
+    playSynthSound('click', isMuted);
+    setDetectiveClassified(prev => ({
+      ...prev,
+      [word]: category
+    }));
+  };
+
+  const handleVerifyDetective = () => {
+    let allCorrect = true;
+    DETECTIVE_WORDS.forEach(item => {
+      if (detectiveClassified[item.text] !== item.type) {
+        allCorrect = false;
+      }
+    });
+    
+    setDetectiveChecked(true);
+    if (allCorrect) {
+      playSynthSound('correct', isMuted);
+      handlePointsGain(20, 'detective');
+      triggerToast("Perfect grammar classification! +20 points!", "⚡");
+    } else {
+      playSynthSound('incorrect', isMuted);
+    }
+  };
+
+  const handleResetDetective = () => {
+    playSynthSound('click', isMuted);
+    setDetectiveClassified({});
+    setDetectiveChecked(false);
+  };
+
+  // ==========================================
+  // CREATE YOUR OWN ADVENTURE
+  // ==========================================
+  const handleVerifyAdventure = () => {
+    const { p1, p2, p3, p4 } = adventureInputs;
+    if (!p1 || !p2 || !p3 || !p4) {
+      setAdventureFeedback({
+        status: 'error',
+        message: 'Please complete all four fields to build your past narrative!'
+      });
+      playSynthSound('incorrect', isMuted);
+      return;
+    }
+
+    const fullStory = `${p1} ${p2} ${p3} ${p4}`.toLowerCase();
+    let suggestions = [];
+    let calculatedScore = 100;
+
+    const hasPastTenses = ['went', 'stayed', 'visited', 'played', 'ate', 'saw', 'slept', 'walked', 'bought', 'lost', 'had'].some(v => fullStory.includes(v));
+    if (!hasPastTenses) {
+      suggestions.push("Try including more active past actions using regular simple past verbs (like stayed, went, saw).");
+      calculatedScore -= 20;
+    }
+
+    if (p1.length < 5 || p2.length < 5 || p3.length < 5 || p4.length < 5) {
+      suggestions.push("Write complete sentences to provide richer details and context.");
+      calculatedScore -= 20;
+    }
+
+    if (fullStory.includes('goed') || fullStory.includes('buyed') || fullStory.includes('eated')) {
+      suggestions.push("Watch out! 'went', 'bought', and 'ate' are irregular verbs (avoid 'goed', 'buyed', 'eated').");
+      calculatedScore -= 15;
+    }
+
+    playSynthSound('correct', isMuted);
+    setAdventureFeedback({
+      status: 'success',
+      score: calculatedScore,
+      suggestions: suggestions.length > 0 ? suggestions : ["Spectacular! You wrote your story very naturally."]
+    });
+
+    handlePointsGain(20, 'adventure');
+  };
+
+  // ==========================================
+  // CELEBRATION CONTROL ACTION
+  // ==========================================
+  const triggerFinalCelebration = () => {
+    // Stop any speech synthesizer running
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    if (audioTimeoutRef.current) clearTimeout(audioTimeoutRef.current);
+    setIsPlaying(false);
+
+    // Play Victory sound fanfare and Badge sound fanfare
+    playSynthSound('victory', isMuted);
+    setTimeout(() => {
+      playSynthSound('badge', isMuted);
+    }, 1500);
+
+    setShowCelebration(true);
+  };
+
+  // Calculate scores for dynamic adaptive feedback
+  const finalListeningScore = progress.listeningScore || 0;
+  const finalVocabScore = progress.vocabScore || 0;
+  const finalGrammarScore = progress.grammarScore || 0;
+  const finalWritingScore = progress.writingScore || 0;
+
+  // Simple average of completed categories
+  const finalOverallScore = Math.round(
+    (finalListeningScore + finalVocabScore + finalGrammarScore + finalWritingScore) / 4
+  );
+
+  // Determine Performance Level Tier
+  let performanceTier = "";
+  let performanceMessage = "";
+  let performanceBadge = "🌱";
+  let performanceTitleColor = "text-rose-400";
+
+  if (finalOverallScore >= 90) {
+    performanceTier = "🏆 Excellent Performance";
+    performanceMessage = "Outstanding work! You demonstrated excellent listening comprehension and a strong understanding of narrative tenses. Keep challenging yourself with more English adventures!";
+    performanceBadge = "🏆";
+    performanceTitleColor = "text-amber-400";
+  } else if (finalOverallScore >= 80) {
+    performanceTier = "🥇 Very Good Performance";
+    performanceMessage = "Great job! You understood most of the story and used narrative language effectively. Keep practicing to become a Narrative Master!";
+    performanceBadge = "🥇";
+    performanceTitleColor = "text-cyan-400";
+  } else if (finalOverallScore >= 70) {
+    performanceTier = "🥈 Good Performance";
+    performanceMessage = "Well done! You are making solid progress. Review the vocabulary and listen to the story again to improve your confidence and accuracy.";
+    performanceBadge = "🥈";
+    performanceTitleColor = "text-emerald-400";
+  } else if (finalOverallScore >= 60) {
+    performanceTier = "🥉 Developing Performance";
+    performanceMessage = "Good effort! You completed the lesson successfully. Focus on listening carefully to key details and practicing past tense verbs. Every lesson helps you improve!";
+    performanceBadge = "🥉";
+    performanceTitleColor = "text-orange-400";
+  } else {
+    performanceTier = "🌱 Needs More Practice";
+    performanceMessage = "Don’t give up! Learning English takes practice. Try listening to the story again, review the vocabulary, and complete the activities once more. You’re improving with every attempt!";
+    performanceBadge = "🌱";
+    performanceTitleColor = "text-slate-400";
+  }
+
+  // Generate Personalized Recommendations
+  const scoreCategories = [
+    { name: 'Listening', score: finalListeningScore, recs: ["Listen to the audio one more time at 0.75× speed.", "Pay attention to keywords and sequence markers."] },
+    { name: 'Vocabulary', score: finalVocabScore, recs: ["Review the vocabulary cards before listening again.", "Practice matching words with their meanings to build confidence."] },
+    { name: 'Grammar', score: finalGrammarScore, recs: ["Review simple past tenses (regular & irregular past verbs).", "Practice using connectors such as \"First\", \"Suddenly\", and \"In the end\"."] },
+    { name: 'Writing', score: finalWritingScore, recs: ["Try writing another short story using our connectors template.", "Double-check your narrative simple past tenses before submitting."] }
+  ];
+
+  // Find weakest areas (sorted ascending)
+  const sortedWeakestAreas = [...scoreCategories].sort((a, b) => a.score - b.score);
+  const primaryWeakArea = sortedWeakestAreas[0];
+  const secondaryWeakArea = sortedWeakestAreas[1];
+
+  const fontClass = fontSize === 'sm' ? 'text-sm' : fontSize === 'lg' ? 'text-lg' : 'text-base';
+
+  return (
+    <div className={`min-h-screen transition-colors duration-300 ${theme === 'dark' ? 'bg-slate-900 text-slate-100' : 'bg-slate-50 text-slate-800'} font-sans`}>
+      
+      {/* GLOBAL NAVIGATION HEADER & DEVICE SIMULATOR */}
+      <header className="sticky top-0 z-50 backdrop-blur-md bg-opacity-90 bg-indigo-900 text-white px-4 py-3 shadow-lg border-b border-indigo-800">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+          
+          <div className="flex items-center gap-3">
+            <div className="bg-cyan-500 text-slate-900 p-2 rounded-xl shadow-inner font-bold text-xl flex items-center gap-1 animate-pulse">
+              <span>🧗</span>
+              <span className="hidden sm:inline">Listening Lab</span>
+            </div>
+            <div>
+              <h1 className="text-lg font-bold tracking-tight">Past Adventures</h1>
+              <p className="text-xs text-indigo-200">Interactive Narratives • Level A2</p>
+            </div>
+          </div>
+
+          {/* DEVICE PREVIEW SWITCHER */}
+          <div className="flex items-center bg-indigo-950/80 p-1.5 rounded-xl border border-indigo-800/80 gap-1 shadow-inner">
+            <span className="text-xs text-indigo-300 px-2 font-semibold hidden lg:inline">Device View:</span>
+            <button 
+              onClick={() => { setDeviceView('mobile'); playSynthSound('click', isMuted); }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${deviceView === 'mobile' ? 'bg-cyan-500 text-slate-950 shadow-md' : 'text-indigo-300 hover:bg-indigo-900/60'}`}
+              title="Mobile View"
+            >
+              <Smartphone className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Mobile</span>
+            </button>
+            <button 
+              onClick={() => { setDeviceView('tablet'); playSynthSound('click', isMuted); }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${deviceView === 'tablet' ? 'bg-cyan-500 text-slate-950 shadow-md' : 'text-indigo-300 hover:bg-indigo-900/60'}`}
+              title="Tablet View"
+            >
+              <Tablet className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Tablet</span>
+            </button>
+            <button 
+              onClick={() => { setDeviceView('desktop'); playSynthSound('click', isMuted); }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${deviceView === 'desktop' ? 'bg-cyan-500 text-slate-950 shadow-md' : 'text-indigo-300 hover:bg-indigo-900/60'}`}
+              title="Desktop View"
+            >
+              <Laptop className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Desktop</span>
+            </button>
+          </div>
+
+          {/* STREAK & XP HIGHLIGHTS */}
+          <div className="flex items-center gap-4">
+            <div className="bg-indigo-800/50 px-3 py-1.5 rounded-xl flex items-center gap-2 border border-indigo-700">
+              <span className="text-amber-400 font-bold">🔥 Streak: {progress.streak} Days</span>
+              <div className="h-4 w-[1px] bg-indigo-700" />
+              <span className="text-cyan-400 font-extrabold">{progress.points} pts</span>
+            </div>
+          </div>
+
+        </div>
+      </header>
+
+      {/* DEVICE VIEW WRAPPER PREVIEW SIMULATOR */}
+      <div className="max-w-7xl mx-auto p-4 flex justify-center">
+        <div className={`transition-all duration-300 w-full ${
+          deviceView === 'mobile' 
+            ? 'max-w-[400px] border-[12px] border-slate-800 dark:border-slate-700 rounded-[40px] shadow-2xl bg-white dark:bg-slate-900 min-h-[780px] overflow-hidden my-4' 
+            : deviceView === 'tablet'
+            ? 'max-w-[768px] border-[14px] border-slate-800 dark:border-slate-700 rounded-[30px] shadow-2xl bg-white dark:bg-slate-900 min-h-[900px] overflow-hidden my-4'
+            : 'max-w-full'
+        }`}>
+          
+          <div className={`p-2 sm:p-4 md:p-6 ${fontClass}`}>
+            
+            {/* MAIN SECTIONS NAVEGATION TABS */}
+            <nav className="mb-6 flex overflow-x-auto no-scrollbar border-b border-slate-200 dark:border-slate-800 scroll-smooth gap-1 pb-1">
+              <button 
+                onClick={() => { setActiveTab('home'); playSynthSound('click', isMuted); }}
+                className={`px-4 py-2 text-sm font-bold rounded-lg whitespace-nowrap transition ${activeTab === 'home' ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:text-indigo-600'}`}
+              >
+                🏠 Home
+              </button>
+              <button 
+                onClick={() => { setActiveTab('pre'); playSynthSound('click', isMuted); }}
+                className={`px-4 py-2 text-sm font-bold rounded-lg whitespace-nowrap transition ${activeTab === 'pre' ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:text-indigo-600'}`}
+              >
+                🧗 1. Pre-Listening
+              </button>
+              <button 
+                onClick={() => { setActiveTab('while'); playSynthSound('click', isMuted); }}
+                className={`px-4 py-2 text-sm font-bold rounded-lg whitespace-nowrap transition ${activeTab === 'while' ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:text-indigo-600'}`}
+              >
+                🎧 2. While-Listening
+              </button>
+              <button 
+                onClick={() => { setActiveTab('post'); playSynthSound('click', isMuted); }}
+                className={`px-4 py-2 text-sm font-bold rounded-lg whitespace-nowrap transition ${activeTab === 'post' ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:text-indigo-600'}`}
+              >
+                🖋️ 3. Post-Listening
+              </button>
+              <button 
+                onClick={() => { setActiveTab('dashboard'); playSynthSound('click', isMuted); }}
+                className={`px-4 py-2 text-sm font-bold rounded-lg whitespace-nowrap transition ${activeTab === 'dashboard' ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:text-indigo-600'}`}
+              >
+                📊 Progress
+              </button>
+              <button 
+                onClick={() => { setActiveTab('settings'); playSynthSound('click', isMuted); }}
+                className={`px-4 py-2 text-sm font-bold rounded-lg whitespace-nowrap transition ${activeTab === 'settings' ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:text-indigo-600'}`}
+              >
+                ⚙️ Settings
+              </button>
+            </nav>
+
+            {/* INTERACTIVE ROUTER CONTENT */}
+            <main className="space-y-6">
+
+              {/* HOME SCREEN */}
+              {activeTab === 'home' && (
+                <div className="space-y-6 animate-fadeIn">
+                  
+                  {/* HERO BANNER */}
+                  <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-700 via-indigo-900 to-cyan-900 text-white p-6 md:p-8 shadow-xl">
+                    <div className="absolute right-0 bottom-0 opacity-10 text-9xl pointer-events-none select-none">🏔️</div>
+                    <div className="relative z-10 max-w-lg space-y-4">
+                      <span className="inline-block px-3 py-1 bg-cyan-400 text-slate-900 rounded-full text-xs font-bold tracking-widest uppercase">A2 ENGLISH LAB</span>
+                      <h2 className="text-3xl font-extrabold leading-tight">Improve your listening skills through real-life stories.</h2>
+                      <p className="text-indigo-200 text-sm">Join Max and Leo on an unexpected mountain experience while mastering simple past narrative tenses!</p>
+                      <div className="pt-2 flex flex-wrap gap-3">
+                        <button 
+                          onClick={() => { setActiveTab('pre'); playSynthSound('click', isMuted); }}
+                          className="px-5 py-2.5 bg-gradient-to-r from-emerald-400 to-teal-500 text-slate-900 font-extrabold rounded-xl hover:scale-105 transition-all shadow-lg flex items-center gap-2"
+                        >
+                          ▶ Start Lesson
+                        </button>
+                        <button 
+                          onClick={() => { setActiveTab('dashboard'); playSynthSound('click', isMuted); }}
+                          className="px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white font-bold rounded-xl transition flex items-center gap-2"
+                        >
+                          📊 My Progress
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* STUDENT PERFORMANCE CARDS */}
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="bg-indigo-50/50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 text-center">
+                      <span className="text-xs text-slate-400 block uppercase font-extrabold tracking-wider">Total XP</span>
+                      <p className="text-2xl font-black text-indigo-600 dark:text-cyan-400">{progress.xp} XP</p>
+                    </div>
+                    <div className="bg-indigo-50/50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 text-center">
+                      <span className="text-xs text-slate-400 block uppercase font-extrabold tracking-wider">Activities Completed</span>
+                      <p className="text-2xl font-black text-emerald-500">{progress.completedActivities.length} / 8</p>
+                    </div>
+                    <div className="bg-indigo-50/50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 text-center">
+                      <span className="text-xs text-slate-400 block uppercase font-extrabold tracking-wider">Badges Unlocked</span>
+                      <p className="text-2xl font-black text-amber-500">{progress.badges.length} / 4</p>
+                    </div>
+                    <div className="bg-indigo-50/50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 text-center">
+                      <span className="text-xs text-slate-400 block uppercase font-extrabold tracking-wider">Active Streak</span>
+                      <p className="text-2xl font-black text-rose-500">🔥 {progress.streak} days</p>
+                    </div>
+                  </div>
+
+                  {/* LESSON PROGRESS BAR */}
+                  <div className="bg-white dark:bg-slate-800/60 p-5 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800/80 space-y-3">
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="font-bold">Total Lesson Progress</span>
+                      <span className="font-extrabold text-indigo-600 dark:text-cyan-400">
+                        {Math.round((progress.completedActivities.length / 8) * 100)}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-200 dark:bg-slate-700 h-4 rounded-full overflow-hidden p-0.5">
+                      <div 
+                        className="bg-gradient-to-r from-indigo-500 via-cyan-500 to-emerald-500 h-full rounded-full transition-all duration-700"
+                        style={{ width: `${Math.min(100, (progress.completedActivities.length / 8) * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* BRIEF SYNOPSIS & BADGES PORTLET */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="bg-white dark:bg-slate-800/40 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-4">
+                      <h3 className="font-bold text-lg flex items-center gap-2 text-indigo-600 dark:text-cyan-400">
+                        <BookOpen className="text-cyan-500" /> Story Synopsis
+                      </h3>
+                      <p className="text-sm leading-relaxed text-slate-500 dark:text-slate-300">
+                        Max and his brother decided to go hiking in the mountains last weekend, but the weather had a surprise for them. Listen carefully to Max's story to Leo and pay attention to how he structures events using the simple past tense.
+                      </p>
+                      <div className="p-3 bg-indigo-50 dark:bg-indigo-950/40 rounded-xl text-xs text-indigo-600 dark:text-indigo-400 font-semibold">
+                        💡 Grammar Note: Pay attention to regular verbs (ending in -ed) and irregular verbs (went, bought, ran) that you hear during the lesson.
+                      </div>
+                    </div>
+
+                    <div className="bg-white dark:bg-slate-800/40 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-4">
+                      <h3 className="font-bold text-lg flex items-center gap-2 text-indigo-600 dark:text-cyan-400">
+                        <Award className="text-amber-500" /> Unlocked Badges ({progress.badges.length})
+                      </h3>
+                      <div className="grid grid-cols-2 gap-2">
+                        {BADGES.map(b => {
+                          const isUnlocked = progress.badges.includes(b.id);
+                          return (
+                            <div 
+                              key={b.id} 
+                              className={`p-3 rounded-xl border text-center transition ${isUnlocked ? 'bg-gradient-to-br from-indigo-50/50 to-cyan-50 dark:from-slate-800 dark:to-slate-850 border-cyan-500/30' : 'opacity-40 bg-slate-100 dark:bg-slate-800/20 border-transparent'}`}
+                            >
+                              <span className="text-3xl block mb-1">{b.icon}</span>
+                              <span className="text-xs font-bold block truncate">{b.name}</span>
+                              <span className="text-[10px] text-slate-400 block line-clamp-1">{isUnlocked ? 'Unlocked' : 'Locked'}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              )}
+
+              {/* SECTION 1 — PRE-LISTENING */}
+              {activeTab === 'pre' && (
+                <div className="space-y-8 animate-fadeIn">
+                  
+                  {/* VOCABULARY MATCHING CHALLENGE */}
+                  <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800/80 space-y-6">
+                    <div>
+                      <span className="text-xs uppercase bg-cyan-100 dark:bg-cyan-900/40 text-cyan-700 dark:text-cyan-300 px-3 py-1 rounded-full font-bold">Activity 1</span>
+                      <h2 className="text-xl font-bold mt-2">Interactive Vocabulary Challenge</h2>
+                      <p className="text-sm text-slate-500 dark:text-slate-300 mt-1">
+                        Before listening to the audio, match each word or expression with its correct meaning or past form. These words and expressions will help you understand the story.
+                      </p>
+                    </div>
+
+                    {matchingError && (
+                      <div className="p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 rounded-xl text-xs flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                        <span>{matchingError}</span>
+                      </div>
+                    )}
+
+                    {vocabFinished ? (
+                      <div className="p-6 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/50 rounded-2xl text-center space-y-3">
+                        <span className="text-4xl block">✨ 🏆 ✨</span>
+                        <h3 className="font-extrabold text-emerald-600 dark:text-emerald-400">Amazing Work!</h3>
+                        <p className="text-sm text-slate-600 dark:text-slate-300 max-w-md mx-auto">You matched all terms of the story with their definitions. You earned +10 points!</p>
+                        <button 
+                          onClick={handleResetVocab}
+                          className="px-4 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 rounded-xl text-xs font-bold transition flex items-center gap-1.5 mx-auto animate-pulse"
+                        >
+                          <RefreshCw className="w-3.5 h-3.5" /> Practice Again
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-6">
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Step 1: Tap a Vocabulary Word</label>
+                          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                            {VOCAB_ITEMS.map(item => {
+                              const isMatched = vocabMatches[item.id] !== undefined;
+                              const isSelected = selectedWord?.id === item.id;
+                              return (
+                                <button
+                                  key={item.id}
+                                  disabled={isMatched}
+                                  onClick={() => handleSelectWord(item)}
+                                  className={`p-3 rounded-2xl border text-center transition relative overflow-hidden ${
+                                    isMatched 
+                                      ? 'bg-slate-100 dark:bg-slate-800/40 border-emerald-500/50 text-emerald-500' 
+                                      : isSelected
+                                      ? 'bg-indigo-600 border-indigo-700 text-white scale-105 shadow-md'
+                                      : 'bg-indigo-50/40 dark:bg-slate-800/20 border-slate-200 dark:border-slate-700/60 hover:border-indigo-400 dark:hover:border-indigo-500'
+                                  }`}
+                                >
+                                  <span className="text-2xl block mb-1">{item.icon}</span>
+                                  <span className="text-xs font-bold block">{item.word}</span>
+                                  {isMatched && (
+                                    <div className="absolute top-1 right-1 bg-emerald-500 text-white rounded-full p-0.5">
+                                      <Check className="w-3.5 h-3.5" />
+                                    </div>
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Step 2: Tap its English Meaning</label>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
+                            {VOCAB_ITEMS.map(item => {
+                              const matchKey = Object.keys(vocabMatches).find(k => vocabMatches[k] === item.id);
+                              const isMatched = matchKey !== undefined;
+                              return (
+                                <button
+                                  key={item.id}
+                                  disabled={isMatched}
+                                  onClick={() => handleSelectMeaning(item)}
+                                  className={`p-3 text-left rounded-2xl border transition text-xs flex flex-col justify-between min-h-[90px] ${
+                                    isMatched 
+                                      ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-500/50 text-emerald-600 dark:text-emerald-400' 
+                                      : 'bg-white dark:bg-slate-800 border-slate-200 hover:border-cyan-500 hover:shadow-sm'
+                                  }`}
+                                >
+                                  <p className="font-semibold">{item.meaning}</p>
+                                  {isMatched && (
+                                    <span className="text-[10px] mt-2 block font-bold text-emerald-500">
+                                      ✓ Correct
+                                    </span>
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* PREDICTIONS MODULE */}
+                  <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800/80 space-y-6">
+                    <div>
+                      <span className="text-xs uppercase bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 px-3 py-1 rounded-full font-bold">Activity 2</span>
+                      <h2 className="text-xl font-bold mt-2">What do you think happened? (Story Prediction)</h2>
+                      <p className="text-sm text-slate-500 dark:text-slate-300 mt-1">
+                        Look closely at this mountain scene before playing the dialogue. What do you predict happens during Max's trip?
+                      </p>
+                    </div>
+
+                    <div className="relative rounded-2xl overflow-hidden h-48 bg-gradient-to-b from-cyan-300 via-indigo-300 to-indigo-900 border border-indigo-200/40">
+                      <div className="absolute top-4 left-6 text-white font-bold text-xs bg-slate-950/40 backdrop-blur-sm px-2 py-1 rounded-md">Max's Destination Range</div>
+                      <div className="absolute right-12 top-6 w-14 h-14 bg-amber-400 rounded-full opacity-80 blur-[2px]" />
+                      <svg className="absolute bottom-0 w-full h-24 text-indigo-950 fill-current" viewBox="0 0 100 100" preserveAspectRatio="none">
+                        <polygon points="0,100 20,30 40,100" opacity="0.9"/>
+                        <polygon points="30,100 55,10 80,100" />
+                        <polygon points="70,100 85,45 100,100" opacity="0.8"/>
+                      </svg>
+                      <div className="absolute bottom-4 left-1/3 transform -translate-x-1/2 text-2xl animate-bounce">🚶‍♂️🚶‍♂️</div>
+                      <div className="absolute bottom-1 right-4 text-xs bg-black/60 text-white px-2 py-0.5 rounded">A2 Adventure Basecamp</div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <p className="font-bold text-sm text-slate-600 dark:text-slate-300">Choose one or more hypothesis:</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {PREDICTIONS.map(p => {
+                          const isSelected = progress.predictionsSelected.includes(p.id);
+                          return (
+                            <button
+                              key={p.id}
+                              disabled={predictionsSubmitted}
+                              onClick={() => handleTogglePrediction(p.id)}
+                              className={`p-4 rounded-2xl text-left border transition flex items-start gap-3 ${
+                                  isSelected 
+                                  ? 'bg-indigo-50 border-indigo-500 dark:bg-slate-800/80 dark:border-indigo-400' 
+                                  : 'bg-white dark:bg-slate-850 border-slate-200 dark:border-slate-850 hover:border-indigo-300'
+                              }`}
+                            >
+                              <div className={`mt-0.5 w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0 ${isSelected ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-slate-300'}`}>
+                                {isSelected && <Check className="w-3.5 h-3.5" />}
+                              </div>
+                              <div className="space-y-1">
+                                <span className="font-bold text-sm block">{p.text}</span>
+                                {predictionsSubmitted && (
+                                  <span className={`text-[11px] block ${p.correct ? 'text-emerald-500' : 'text-slate-400'}`}>
+                                    {p.correct ? `✓ Correct! ${p.bonus}` : `✗ Incorrect: ${p.bonus}`}
+                                  </span>
+                                )}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <div className="pt-2 flex justify-end">
+                        {!predictionsSubmitted ? (
+                          <button
+                            onClick={handleReviewPredictions}
+                            disabled={progress.predictionsSelected.length === 0 || predictionsSubmitting}
+                            className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition text-sm disabled:opacity-50"
+                          >
+                            {predictionsSubmitting ? 'Analyzing Predictions...' : 'Confirm Predictions (+10 XP)'}
+                          </button>
+                        ) : (
+                          <span className="text-xs bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5">
+                            <CheckCircle className="w-3.5 h-3.5" /> Predictions Saved! Move onto Section 2 to listen.
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                  </div>
+
+                  {/* NAVIGATE TO SECTION 2 BUTTON */}
+                  <div className="mt-8 flex justify-end">
+                    <button 
+                      onClick={() => {
+                        playSynthSound('click', isMuted);
+                        setActiveTab('while');
+                        triggerToast("Progress saved! Moving to While-Listening section.", "💾");
+                      }}
+                      className="flex items-center gap-2.5 px-6 py-3 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white font-extrabold text-sm rounded-2xl shadow-lg hover:scale-105 active:scale-95 transition-all"
+                    >
+                      ➡️ Continue to While-Listening
+                    </button>
+                  </div>
+
+                </div>
+              )}
+
+              {/* SECTION 2 — WHILE-LISTENING */}
+              {activeTab === 'while' && (
+                <div className="space-y-8 animate-fadeIn">
+                  
+                  {/* DIALOGUE PLAYER */}
+                  <div className="bg-gradient-to-br from-indigo-900 to-indigo-950 text-white p-6 rounded-3xl shadow-lg border border-indigo-800 space-y-6">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-indigo-800 pb-4">
+                      <div>
+                        <span className="text-xs bg-cyan-400 text-indigo-950 px-2.5 py-1 rounded-full font-extrabold uppercase">Expressive Audio</span>
+                        <h2 className="text-xl font-extrabold mt-1">Past Adventures audio</h2>
+                        <p className="text-xs text-indigo-200 mt-0.5">Natural conversation with differentiated accents and realistic intonation</p>
+                      </div>
+                      
+                      {/* SPEED CONTROLS */}
+                      <div className="flex items-center gap-1.5 bg-indigo-950/80 p-1 rounded-xl border border-indigo-800/60">
+                        <span className="text-[10px] text-indigo-300 px-1 font-bold">Speed:</span>
+                        {[0.75, 1, 1.25].map(speed => (
+                          <button
+                            key={speed}
+                            onClick={() => { setPlaybackSpeed(speed); playSynthSound('click', isMuted); }}
+                            className={`px-2 py-1 rounded-lg text-xs font-black transition ${playbackSpeed === speed ? 'bg-cyan-400 text-slate-950' : 'text-indigo-200 hover:bg-indigo-900'}`}
+                          >
+                            {speed}x
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* WAVEFORM ELEMENT */}
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-xs text-indigo-300">
+                        <span>Accent: Max (UK, steady) & Leo (US, cheerful)</span>
+                        <span>{activeSpeechIndex >= 0 ? `${activeSpeechIndex + 1} / ${TRANSCRIPT.length}` : "0 / 13"} sentences read</span>
+                      </div>
+                      <div className="h-10 bg-indigo-950 rounded-xl flex items-center px-4 overflow-hidden gap-1.5 border border-indigo-800/80 relative">
+                        {Array.from({ length: 40 }).map((_, i) => {
+                          const isActive = (audioProgress / 100) * 40 > i;
+                          const height = isPlaying ? Math.sin(i * 0.5 + audioProgress * 0.1) * 16 + 20 : 10;
+                          return (
+                            <div 
+                              key={i} 
+                              className={`w-1 rounded-full transition-all duration-300 ${isActive ? 'bg-cyan-400' : 'bg-indigo-800'}`} 
+                              style={{ height: `${height}px` }}
+                            />
+                          );
+                        })}
+                        <div 
+                          className="absolute top-0 bottom-0 left-0 bg-cyan-400/10 pointer-events-none transition-all duration-300"
+                          style={{ width: `${audioProgress}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* INTERACTIVE CONTROLS */}
+                    <div className="flex justify-between items-center bg-indigo-950/60 p-3 rounded-2xl border border-indigo-900">
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={handleAudioPlayToggle}
+                          className="w-12 h-12 bg-cyan-400 hover:bg-cyan-300 text-slate-950 rounded-2xl flex items-center justify-center font-bold shadow-md hover:scale-105 transition"
+                          title="Play Dialogue"
+                        >
+                          {isPlaying ? <Pause className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 fill-current translate-x-0.5" />}
+                        </button>
+                        <button
+                          onClick={handleAudioReset}
+                          className="p-2.5 bg-indigo-900 hover:bg-indigo-800 rounded-xl transition"
+                          title="Reset Dialogue"
+                        >
+                          <RotateCcw className="w-5 h-5" />
+                        </button>
+                      </div>
+
+                      {/* SUBTITLES BOX (STRICTLY CLEAN WITHOUT SPEAKER NAMES OR ACTIONS) */}
+                      <div className="flex-1 max-w-sm mx-4 bg-indigo-950 p-2.5 rounded-xl text-xs border border-indigo-900/60 text-indigo-100 min-h-[50px] flex items-center justify-center text-center">
+                        {activeSpeechIndex >= 0 ? (
+                          <p className="italic">
+                            "{TRANSCRIPT[activeSpeechIndex].text.replace(/\[.*?\]/g, '').trim()}"
+                          </p>
+                        ) : (
+                          <span className="text-indigo-400 font-semibold italic">
+                            Click Play to begin the conversation
+                          </span>
+                        )}
+                      </div>
+
+                      {/* MUTE SYNTH BUTTON */}
+                      <button
+                        onClick={() => setIsMuted(!isMuted)}
+                        className={`p-2.5 rounded-xl transition ${isMuted ? 'bg-red-950 text-red-400' : 'bg-indigo-900 hover:bg-indigo-800'}`}
+                        title="Mute Sound Effects"
+                      >
+                        {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                      </button>
+                    </div>
+
+                  </div>
+
+                  {/* KEYWORD CHALLENGE */}
+                  <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800/80 space-y-4">
+                    <div>
+                      <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold uppercase">Activity 1</span>
+                      <h3 className="font-extrabold text-lg mt-1">Hidden Keywords Challenge</h3>
+                      <p className="text-xs text-slate-400">Tap these critical adventure keywords immediately when you hear them in the conversation!</p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 pt-2">
+                      {['suddenly', 'jacket', 'mountain', 'café', 'hot chocolate'].map(word => {
+                        const isTapped = progress.keywordTaps.includes(word);
+                        return (
+                          <button
+                            key={word}
+                            onClick={() => handleKeywordTap(word)}
+                            className={`px-4 py-2 rounded-xl border text-xs font-bold transition flex items-center gap-1.5 ${
+                              isTapped 
+                                ? 'bg-emerald-50 border-emerald-300 text-emerald-700 dark:bg-emerald-950/20'
+                                : 'bg-slate-50 dark:bg-slate-850 border-slate-200 hover:border-amber-400 hover:bg-amber-50/20'
+                            }`}
+                          >
+                            <span>{word}</span>
+                            {isTapped ? <CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> : <Star className="w-3.5 h-3.5 text-amber-400" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* MCQ COMPREHENSION TRIVIA */}
+                  <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800/80 space-y-6">
+                    <div>
+                      <span className="text-xs bg-cyan-100 text-cyan-700 px-2 py-0.5 rounded-full font-bold uppercase">Activity 2</span>
+                      <h3 className="font-extrabold text-lg mt-1">Interactive Listening Mission</h3>
+                      <p className="text-xs text-slate-400">Demonstrate your comprehension by answering the trivia about Max's adventure.</p>
+                    </div>
+
+                    <div className="space-y-6">
+                      {MCQ_QUESTIONS.map(q => {
+                        const selectedIdx = mcqAnswers[q.id];
+                        return (
+                          <div key={q.id} className="p-4 bg-slate-50/50 dark:bg-slate-850 rounded-2xl border border-slate-100 space-y-3">
+                            <span className="font-bold text-sm block">
+                              {q.id}. {q.question}
+                            </span>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                              {q.options.map((opt, oIdx) => {
+                                const isSelected = selectedIdx === oIdx;
+                                const isCorrect = q.correct === oIdx;
+                                return (
+                                  <button
+                                    key={oIdx}
+                                    disabled={mcqSubmitted}
+                                    onClick={() => handleSelectMcq(q.id, oIdx)}
+                                    className={`p-3 text-left rounded-xl text-xs border transition ${
+                                      isSelected
+                                        ? mcqSubmitted 
+                                          ? isCorrect 
+                                            ? 'bg-emerald-50 border-emerald-300 text-emerald-700 dark:bg-emerald-950/20'
+                                            : 'bg-red-50 border-red-500 text-red-600'
+                                          : 'bg-indigo-600 border-indigo-700 text-white font-semibold'
+                                        : mcqSubmitted && isCorrect
+                                        ? 'bg-emerald-50 border-emerald-500 text-emerald-600'
+                                        : 'bg-white dark:bg-slate-800 border-slate-200'
+                                    }`}
+                                  >
+                                    <span className="font-bold mr-1">{String.fromCharCode(65 + oIdx)}.</span> {opt}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                            {mcqSubmitted && (
+                              <div className="p-2 bg-indigo-50/50 dark:bg-indigo-950/20 text-[11px] text-indigo-600 dark:text-indigo-400 rounded-lg">
+                                💡 <strong>Explanation:</strong> {q.explanation}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <div className="flex justify-end">
+                      {!mcqSubmitted ? (
+                        <button
+                          onClick={handleSubmitMcq}
+                          disabled={Object.keys(mcqAnswers).length < MCQ_QUESTIONS.length}
+                          className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition text-sm disabled:opacity-40"
+                        >
+                          Confirm Comprehension Answers (+20 XP)
+                        </button>
+                      ) : (
+                        <div className="text-right">
+                          <p className="text-sm font-bold text-emerald-500">Comprehension Answers Saved in the Progress Dashboard!</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* SECUENCIADOR DE TIEMPO */}
+                  <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800/80 space-y-6">
+                    <div>
+                      <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-bold uppercase">Activity 3</span>
+                      <h3 className="font-extrabold text-lg mt-1">Listening Timeline Sequencer</h3>
+                      <p className="text-xs text-slate-400">Order the historical events chronologically according to the conversational narrative.</p>
+                    </div>
+
+                    <div className="space-y-2 max-w-xl">
+                      {timelineOrder.map((item, index) => {
+                        return (
+                          <div 
+                            key={item.id} 
+                            className="p-3 bg-slate-50 dark:bg-slate-850 rounded-xl border border-slate-200/80 flex items-center justify-between gap-3"
+                          >
+                            <div className="flex items-center gap-3">
+                              <span className="w-6 h-6 rounded-full bg-indigo-600 text-white font-bold text-xs flex items-center justify-center">
+                                {index + 1}
+                              </span>
+                              <span className="text-xs font-semibold">{item.text}</span>
+                            </div>
+                            
+                            {!timelineChecked && (
+                              <div className="flex gap-1">
+                                <button
+                                  disabled={index === 0}
+                                  onClick={() => moveTimelineItem(index, -1)}
+                                  className="p-1 bg-white hover:bg-slate-100 rounded border text-slate-500 text-xs font-extrabold disabled:opacity-30"
+                                >
+                                  ▲
+                                </button>
+                                <button
+                                  disabled={index === timelineOrder.length - 1}
+                                  onClick={() => moveTimelineItem(index, 1)}
+                                  className="p-1 bg-white hover:bg-slate-100 rounded border text-slate-500 text-xs font-extrabold disabled:opacity-30"
+                                >
+                                  ▼
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <div className="pt-2 flex flex-wrap gap-2 justify-end">
+                      {timelineChecked && (
+                        <div className={`p-3 rounded-xl border text-xs ${timelineSuccess ? 'bg-emerald-50 border-emerald-300 text-emerald-600' : 'bg-red-50 border-red-300 text-red-600'}`}>
+                          {timelineSuccess 
+                            ? "✓ Timeline sequence ordered brilliantly!" 
+                            : "✗ The chronological order is incorrect. Review the dialogue and retry."
+                          }
+                        </div>
+                      )}
+
+                      {!timelineChecked ? (
+                        <button
+                          onClick={handleVerifyTimeline}
+                          className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition"
+                        >
+                          Check Chronological Sequence (+30 points)
+                        </button>
+                      ) : (
+                        <button
+                          onClick={handleResetTimeline}
+                          className="px-6 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl text-xs transition"
+                        >
+                          Reorganize Sequence
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* NAVIGATE TO SECTION 3 BUTTON */}
+                  <div className="mt-8 flex justify-end">
+                    <button 
+                      onClick={() => {
+                        playSynthSound('click', isMuted);
+                        setActiveTab('post');
+                        triggerToast("Listening scores successfully saved! Continuing to Post-Listening.", "💾");
+                      }}
+                      className="flex items-center gap-2.5 px-6 py-3 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white font-extrabold text-sm rounded-2xl shadow-lg hover:scale-105 active:scale-95 transition-all"
+                    >
+                      ➡️ Continue to Post-Listening
+                    </button>
+                  </div>
+
+                </div>
+              )}
+
+              {/* SECCIÓN 3 — POST-LISTENING */}
+              {activeTab === 'post' && (
+                <div className="space-y-8 animate-fadeIn">
+                  
+                  {/* TRANSCRIPCIÓN CON CORCHETES DESCRIPTIVOS PARA CONSULTA DE RESPUESTAS */}
+                  <div className="bg-gradient-to-br from-indigo-900 to-indigo-950 text-white p-6 rounded-3xl shadow-lg border border-indigo-800 space-y-4">
+                    <div className="flex items-center gap-2 text-cyan-400">
+                      <BookOpen className="w-5 h-5" />
+                      <h3 className="font-extrabold text-md uppercase tracking-wider font-sans">Story Transcript Reference</h3>
+                    </div>
+                    <p className="text-xs text-indigo-200">
+                      Use this story transcript as a quick guide to answer the post-listening activities below.
+                    </p>
+                    <div className="bg-indigo-950/80 rounded-2xl p-4 border border-indigo-900 space-y-3 max-h-52 overflow-y-auto custom-scrollbar">
+                      {TRANSCRIPT.map((line, idx) => (
+                        <div key={idx} className="p-2 border-b border-indigo-900/60 last:border-b-0">
+                          <span className="text-[10px] uppercase font-bold text-cyan-400 block mb-0.5">{line.speaker}</span>
+                          <p className="text-xs font-medium">"{line.text}"</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* REFLEXIÓN Y DETECTOR DE ERRORES */}
+                  <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800/80 space-y-6">
+                    <div>
+                      <span className="text-xs bg-teal-100 text-teal-700 px-2 py-0.5 rounded-full font-bold uppercase">Activity 1</span>
+                      <h3 className="font-extrabold text-lg mt-1">Interactive Story Reflections</h3>
+                      <p className="text-xs text-slate-400">
+                        Write your comments and reflections on Max's adventure in English. Your paragraph must be between 30 and 50 words.
+                      </p>
+                    </div>
+
+                    <div className="space-y-6">
+                      {REFLECTION_QUESTIONS.map(q => {
+                        const feedback = reflectionFeedback[q.id];
+                        const text = reflectionTexts[q.id];
+                        const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
+                        return (
+                          <div key={q.id} className="p-4 bg-slate-50 dark:bg-slate-850/60 rounded-2xl border border-slate-100 dark:border-slate-800/80 space-y-3">
+                            <span className="font-bold text-xs text-slate-400 block uppercase">Written Question Card</span>
+                            <p className="font-bold text-sm text-slate-700 dark:text-slate-100">{q.question}</p>
+                            
+                            <textarea
+                              value={text}
+                              onChange={(e) => setReflectionTexts({ ...reflectionTexts, [q.id]: e.target.value })}
+                              placeholder="Write your answer here in English..."
+                              className="w-full h-24 p-3 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-xs focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                            />
+
+                            <div className="flex justify-between items-center text-[11px] text-slate-400 font-bold">
+                              <span>Required limit: 30 - 50 words</span>
+                              <span className={wordCount >= 30 && wordCount <= 50 ? 'text-emerald-500' : 'text-red-400'}>
+                                Current word count: {wordCount}
+                              </span>
+                            </div>
+
+                            {feedback && (
+                              <div className={`p-3 rounded-xl border text-xs space-y-1.5 ${feedback.isValid ? 'bg-emerald-50 border-emerald-300 text-emerald-700 dark:bg-emerald-950/20' : 'bg-red-50 border-red-300 text-red-700 dark:bg-red-950/20'}`}>
+                                <div className="flex justify-between font-bold">
+                                  <span>{feedback.isValid ? "✓ Response Validated by the System" : "⚠ Syntax Warning"}</span>
+                                  {feedback.score !== undefined && <span>Score: {feedback.score}/100</span>}
+                                </div>
+                                <p className="text-[11px] leading-relaxed">{feedback.feedback || feedback.message}</p>
+                                
+                                {feedback.errors && feedback.errors.length > 0 && (
+                                  <div className="mt-2 space-y-1 text-[10px] bg-red-100/50 dark:bg-red-950/40 p-2 rounded-md">
+                                    <span className="font-bold block text-red-700">Suggestions from the Grammar Detective:</span>
+                                    {feedback.errors.map((err, eIdx) => (
+                                      <div key={eIdx}>
+                                        • Error found in <code className="bg-red-200 dark:bg-red-900 px-1 rounded font-bold">{err.error}</code>. Try writing <strong className="text-emerald-600">{err.fix}</strong>. ({err.desc})
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            <div className="flex justify-end">
+                              <button
+                                onClick={() => handleReflectionSubmit(q.id)}
+                                disabled={wordCount === 0}
+                                className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition disabled:opacity-40"
+                              >
+                                Analyze Written Response (+10 points)
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* CLASIFICADOR GRAMATICAL */}
+                  <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800/80 space-y-6">
+                    <div>
+                      <span className="text-xs bg-cyan-100 text-cyan-700 px-2 py-0.5 rounded-full font-bold uppercase">Activity 2</span>
+                      <h3 className="font-extrabold text-lg mt-1">Grammar Classifier</h3>
+                      <p className="text-xs text-slate-400">Identify which grammatical role each of these keywords from the story fulfills.</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-3">
+                        <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">Key Terms</span>
+                        <div className="space-y-2">
+                          {DETECTIVE_WORDS.map(word => {
+                            const currentClass = detectiveClassified[word.text];
+                            return (
+                              <div key={word.text} className="p-3 bg-slate-50 dark:bg-slate-850 rounded-xl border border-slate-100 flex items-center justify-between">
+                                <span className="text-xs font-bold uppercase">{word.text}</span>
+                                <div className="flex gap-1">
+                                  {['regular', 'irregular', 'connector'].map(cat => (
+                                    <button
+                                      key={cat}
+                                      disabled={detectiveChecked}
+                                      onClick={() => handleClassifyDetective(word.text, cat)}
+                                      className={`px-2 py-1 rounded-lg text-[10px] font-bold transition uppercase ${
+                                        currentClass === cat 
+                                          ? 'bg-indigo-600 text-white shadow-inner' 
+                                          : 'bg-white dark:bg-slate-800 text-slate-400 hover:bg-slate-100'
+                                      }`}
+                                    >
+                                      {cat}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <div className="bg-slate-50 dark:bg-slate-850/80 p-4 rounded-2xl border border-slate-100 space-y-4">
+                        <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">Classification Boxes</span>
+                        
+                        <div className="space-y-2 text-xs">
+                          <div className="bg-white dark:bg-slate-800 p-2.5 rounded-xl border border-slate-100">
+                            <span className="font-bold text-indigo-500 block">📁 Regular Past Verbs (-ed)</span>
+                            <div className="flex flex-wrap gap-1.5 mt-1">
+                              {Object.keys(detectiveClassified).filter(k => detectiveClassified[k] === 'regular').map(k => (
+                                <span key={k} className="bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded font-bold uppercase text-[10px]">{k}</span>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="bg-white dark:bg-slate-800 p-2.5 rounded-xl border border-slate-100">
+                            <span className="font-bold text-cyan-500 block">📁 Irregular Past Verbs (no -ed)</span>
+                            <div className="flex flex-wrap gap-1.5 mt-1">
+                              {Object.keys(detectiveClassified).filter(k => detectiveClassified[k] === 'irregular').map(k => (
+                                <span key={k} className="bg-cyan-50 text-cyan-600 px-2 py-0.5 rounded font-bold uppercase text-[10px]">{k}</span>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="bg-white dark:bg-slate-800 p-2.5 rounded-xl border border-slate-100">
+                            <span className="font-bold text-teal-500 block">📁 Narrative Connectors</span>
+                            <div className="flex flex-wrap gap-1.5 mt-1">
+                              {Object.keys(detectiveClassified).filter(k => detectiveClassified[k] === 'connector').map(k => (
+                                <span key={k} className="bg-teal-50 text-teal-600 px-2 py-0.5 rounded font-bold uppercase text-[10px]">{k}</span>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 flex flex-wrap gap-2 justify-end">
+                      {detectiveChecked && (
+                        <div className="p-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-300 text-emerald-700 rounded-xl text-xs font-bold">
+                          ✓ Perfect verb and narrative connector identification registered!
+                        </div>
+                      )}
+
+                      {!detectiveChecked ? (
+                        <button
+                          onClick={handleVerifyDetective}
+                          disabled={Object.keys(detectiveClassified).length < DETECTIVE_WORDS.length}
+                          className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition disabled:opacity-40"
+                        >
+                          Check Classifications (+20 points)
+                        </button>
+                      ) : (
+                        <button
+                          onClick={handleResetDetective}
+                          className="px-6 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl text-xs transition animate-pulse"
+                        >
+                          Clear Classifications
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* DISEÑADOR DE AVENTURAS */}
+                  <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800/80 space-y-6">
+                    <div>
+                      <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold uppercase">Activity 3</span>
+                      <h3 className="font-extrabold text-lg mt-1">Create Your Own Adventure (Writing Lab)</h3>
+                      <p className="text-xs text-slate-400">Complete your personal story in simple past using the appropriate connectors in each scene.</p>
+                    </div>
+
+                    <div className="space-y-4 text-xs">
+                      <div className="space-y-1">
+                        <label className="font-extrabold text-slate-400 block uppercase">1. Introducing the adventure:</label>
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                          <span className="bg-indigo-100 text-indigo-700 px-2 py-1 rounded font-bold whitespace-nowrap">Last weekend, I</span>
+                          <input
+                            type="text"
+                            value={adventureInputs.p1}
+                            onChange={(e) => setAdventureInputs({ ...adventureInputs, p1: e.target.value })}
+                            placeholder="e.g. visited my grandparents in the countryside."
+                            className="flex-1 w-full p-2 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 focus:outline-none"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="font-extrabold text-slate-400 block uppercase">2. First events:</label>
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                          <span className="bg-indigo-100 text-indigo-700 px-2 py-1 rounded font-bold whitespace-nowrap">First, I</span>
+                          <input
+                            type="text"
+                            value={adventureInputs.p2}
+                            onChange={(e) => setAdventureInputs({ ...adventureInputs, p2: e.target.value })}
+                            placeholder="e.g. went hiking along the peaceful river."
+                            className="flex-1 w-full p-2 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 focus:outline-none"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="font-extrabold text-slate-400 block uppercase">3. Unexpected twist or climax:</label>
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                          <span className="bg-indigo-100 text-indigo-700 px-2 py-1 rounded font-bold whitespace-nowrap">Suddenly,</span>
+                          <input
+                            type="text"
+                            value={adventureInputs.p3}
+                            onChange={(e) => setAdventureInputs({ ...adventureInputs, p3: e.target.value })}
+                            placeholder="e.g. it started raining very heavily."
+                            className="flex-1 w-full p-2 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 focus:outline-none"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="font-extrabold text-slate-400 block uppercase">4. Conclusion and finished story:</label>
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                          <span className="bg-indigo-100 text-indigo-700 px-2 py-1 rounded font-bold whitespace-nowrap">In the end, I</span>
+                          <input
+                            type="text"
+                            value={adventureInputs.p4}
+                            onChange={(e) => setAdventureInputs({ ...adventureInputs, p4: e.target.value })}
+                            placeholder="e.g. ran into a nearby café and enjoyed a warm tea."
+                            className="flex-1 w-full p-2 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 focus:outline-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {adventureFeedback && (
+                      <div className={`p-4 rounded-2xl border text-xs space-y-2 ${adventureFeedback.status === 'success' ? 'bg-emerald-50 border-emerald-300 text-emerald-800 dark:bg-emerald-950/20' : 'bg-red-50 border-red-300 text-red-800'}`}>
+                        <div className="flex justify-between font-bold">
+                          <span>{adventureFeedback.status === 'success' ? "✓ Cohesive Narrative Composed Successfully!" : "⚠ Grammar Issues"}</span>
+                          {adventureFeedback.score && <span>Written Score: {adventureFeedback.score}/100</span>}
+                        </div>
+                        {adventureFeedback.suggestions && adventureFeedback.suggestions.map((suggestion, sIdx) => (
+                          <p key={sIdx} className="text-[11px] font-semibold leading-relaxed">• {suggestion}</p>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="flex justify-end">
+                      <button
+                        onClick={handleVerifyAdventure}
+                        className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition"
+                      >
+                        Publish Personal Narrative (+20 XP)
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* FINAL FINISH LESSON BUTTON */}
+                  <div className="mt-12 flex justify-center pb-8">
+                    <button 
+                      onClick={triggerFinalCelebration}
+                      className="flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 text-slate-950 font-black text-md rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all animate-bounce"
+                    >
+                      🎉 Finish Lesson & View My Results
+                    </button>
+                  </div>
+
+                </div>
+              )}
+
+              {/* TABLERO DE CALIFICACIONES COMPLETO */}
+              {activeTab === 'dashboard' && (
+                <div className="space-y-6 animate-fadeIn">
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
+                      <span className="text-[10px] text-slate-400 uppercase tracking-widest font-black block">Listening Score</span>
+                      <p className="text-3xl font-black text-indigo-600 dark:text-indigo-400 mt-1">{progress.listeningScore}%</p>
+                      <div className="w-full bg-slate-100 dark:bg-slate-700 h-2 rounded-full overflow-hidden mt-3">
+                        <div className="bg-indigo-600 h-full rounded-full" style={{ width: `${progress.listeningScore}%` }} />
+                      </div>
+                    </div>
+
+                    <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
+                      <span className="text-[10px] text-slate-400 uppercase tracking-widest font-black block">Vocabulary Score</span>
+                      <p className="text-3xl font-black text-cyan-600 dark:text-cyan-400 mt-1">{progress.vocabScore}%</p>
+                      <div className="w-full bg-slate-100 dark:bg-slate-700 h-2 rounded-full overflow-hidden mt-3">
+                        <div className="bg-cyan-600 h-full rounded-full" style={{ width: `${progress.vocabScore}%` }} />
+                      </div>
+                    </div>
+
+                    <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
+                      <span className="text-[10px] text-slate-400 uppercase tracking-widest font-black block">Grammar Score</span>
+                      <p className="text-3xl font-black text-emerald-600 dark:text-emerald-400 mt-1">{progress.grammarScore}%</p>
+                      <div className="w-full bg-slate-100 dark:bg-slate-700 h-2 rounded-full overflow-hidden mt-3">
+                        <div className="bg-emerald-600 h-full rounded-full" style={{ width: `${progress.grammarScore}%` }} />
+                      </div>
+                    </div>
+
+                    <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
+                      <span className="text-[10px] text-slate-400 uppercase tracking-widest font-black block">Writing Score</span>
+                      <p className="text-3xl font-black text-amber-600 dark:text-amber-400 mt-1">{progress.writingScore}%</p>
+                      <div className="w-full bg-slate-100 dark:bg-slate-700 h-2 rounded-full overflow-hidden mt-3">
+                        <div className="bg-amber-600 h-full rounded-full" style={{ width: `${progress.writingScore}%` }} />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800/80 space-y-6">
+                    <h3 className="font-extrabold text-lg flex items-center gap-2 text-indigo-600 dark:text-cyan-400">
+                      <Award className="text-amber-500" /> Achievements and Badges Collection
+                    </h3>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {BADGES.map(b => {
+                        const isUnlocked = progress.badges.includes(b.id);
+                        return (
+                          <div 
+                            key={b.id} 
+                            className={`p-4 rounded-2xl border transition-all flex items-start gap-4 ${
+                              isUnlocked 
+                                ? 'bg-gradient-to-r from-indigo-50/40 to-cyan-50 border-cyan-500/20 shadow-sm' 
+                                : 'opacity-40 bg-slate-100 dark:bg-slate-800/20'
+                            }`}
+                          >
+                            <span className="text-4xl">{b.icon}</span>
+                            <div>
+                              <span className="font-extrabold text-sm block">{b.name}</span>
+                              <p className="text-xs text-slate-400 mt-0.5">{b.desc}</p>
+                              <span className={`text-[10px] uppercase font-bold tracking-widest mt-2 inline-block px-2 py-0.5 rounded ${isUnlocked ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-500'}`}>
+                                {isUnlocked ? '✓ Badge Unlocked' : 'Locked'}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                </div>
+              )}
+
+              {/* PANEL DE AJUSTES */}
+              {activeTab === 'settings' && (
+                <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800/80 space-y-6 animate-fadeIn">
+                  <div>
+                    <h2 className="text-xl font-black">⚙️ Application Settings</h2>
+                    <p className="text-xs text-slate-400">Configure the interface, font size, and lesson sounds</p>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="p-4 bg-slate-50 dark:bg-slate-850 rounded-xl flex items-center justify-between border">
+                      <div>
+                        <span className="font-bold text-sm block">Dark / Light Theme</span>
+                        <p className="text-xs text-slate-400">Adjust the contrast to protect your eyes</p>
+                      </div>
+                      <button
+                        onClick={() => { setTheme(theme === 'dark' ? 'light' : 'dark'); playSynthSound('click', isMuted); }}
+                        className="px-4 py-2 bg-slate-200 dark:bg-slate-700 hover:opacity-90 transition rounded-xl text-xs font-bold"
+                      >
+                        {theme === 'dark' ? '🌙 Dark Mode Active' : '☀️ Light Mode Active'}
+                      </button>
+                    </div>
+
+                    <div className="p-4 bg-slate-50 dark:bg-slate-850 rounded-xl flex items-center justify-between border">
+                      <div>
+                        <span className="font-bold text-sm block">Sound Effects</span>
+                        <p className="text-xs text-slate-400">Interactive sounds when answering questions and earning stars</p>
+                      </div>
+                      <button
+                        onClick={() => { setIsMuted(!isMuted); playSynthSound('click', !isMuted); }}
+                        className={`px-4 py-2 transition rounded-xl text-xs font-bold ${isMuted ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'}`}
+                      >
+                        {isMuted ? '🔈 Audio Disabled' : '🔊 Audio Enabled'}
+                      </button>
+                    </div>
+
+                    <div className="p-4 bg-slate-50 dark:bg-slate-850 rounded-xl flex items-center justify-between border">
+                      <div>
+                        <span className="font-bold text-sm block">Font Size</span>
+                        <p className="text-xs text-slate-400">Adjust the font size to make reading easier</p>
+                      </div>
+                      <div className="flex gap-1.5">
+                        {['sm', 'base', 'lg'].map(size => (
+                          <button
+                            key={size}
+                            onClick={() => { setFontSize(size); playSynthSound('click', isMuted); }}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase transition ${fontSize === size ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-slate-800 border'}`}
+                          >
+                            {size}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="p-4 bg-red-50/50 rounded-xl flex items-center justify-between border border-red-200">
+                      <div>
+                        <span className="font-bold text-sm block text-red-600">Reset Lesson Progress</span>
+                        <p className="text-xs text-red-400">Delete all your history from local storage to start over</p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          if(confirm("Are you sure you want to reset your progress? You will lose all your scores and badges.")) {
+                            setProgress({
+                              points: 0,
+                              xp: 0,
+                              completedActivities: [],
+                              badges: [],
+                              predictionsSelected: [],
+                              keywordTaps: [],
+                              grammarScore: 0,
+                              vocabScore: 0,
+                              listeningScore: 0,
+                              writingScore: 0,
+                              streak: 1,
+                              timeSpent: 0
+                            });
+                            setVocabMatches({});
+                            setVocabFinished(false);
+                            setPredictionsSubmitted(false);
+                            setMcqAnswers({});
+                            setMcqSubmitted(false);
+                            setTimelineChecked(false);
+                            setReflectionFeedback({});
+                            setAdventureFeedback(null);
+                            setAdventureInputs({ p1: '', p2: '', p3: '', p4: '' });
+                            playSynthSound('incorrect', isMuted);
+                          }
+                        }}
+                        className="px-4 py-2 bg-red-600 text-white hover:bg-red-700 transition rounded-xl text-xs font-bold"
+                      >
+                        Reset All
+                      </button>
+                    </div>
+
+                  </div>
+                </div>
+              )}
+
+            </main>
+
+          </div>
+        </div>
+      </div>
+
+      {/* FINAL CELEBRATION CEREMONY MODAL */}
+      {showCelebration && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-4 animate-fadeIn overflow-y-auto">
+          {/* Confetti Particle simulation layer using colorful floating emojis */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden">
+            {Array.from({ length: 45 }).map((_, i) => {
+              const left = Math.random() * 100;
+              const delay = Math.random() * 5;
+              const size = Math.random() * 1.5 + 1;
+              const rotation = Math.random() * 360;
+              const emojis = ['🎉', '✨', '⚡', '🌟', '🏔️', '🧥', '🚶', '☕'];
+              const emoji = emojis[Math.floor(Math.random() * emojis.length)];
+              return (
+                <div 
+                  key={i} 
+                  className="absolute text-2xl animate-floatUp pointer-events-none"
+                  style={{
+                    left: `${left}%`,
+                    bottom: `-10%`,
+                    animationDelay: `${delay}s`,
+                    animationDuration: `${3 + Math.random() * 3}s`,
+                    fontSize: `${size}rem`,
+                    transform: `rotate(${rotation}deg)`,
+                    opacity: 0.85
+                  }}
+                >
+                  {emoji}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Celebratory Congratulation Card */}
+          <div className="bg-gradient-to-b from-indigo-900 via-indigo-950 to-slate-950 text-white rounded-3xl p-6 sm:p-8 max-w-xl w-full text-center relative border border-cyan-500/30 shadow-2xl space-y-6 animate-scaleIn my-8">
+            <div className="w-20 h-24 bg-gradient-to-tr from-amber-400 to-orange-500 rounded-2xl mx-auto flex items-center justify-center text-5xl shadow-lg shadow-amber-500/20 animate-bounce">
+              {performanceBadge}
+            </div>
+            
+            <div className="space-y-2">
+              <span className="text-[10px] uppercase bg-cyan-400 text-indigo-950 px-3 py-1 rounded-full font-black tracking-widest">
+                Adventure Completed
+              </span>
+              <h2 className={`text-2xl sm:text-3xl font-black tracking-tight ${performanceTitleColor}`}>
+                {performanceTier}
+              </h2>
+              <p className="text-sm text-indigo-200 leading-relaxed font-medium">
+                {performanceMessage}
+              </p>
+            </div>
+
+            {/* Performance Breakdown Table */}
+            <div className="bg-indigo-950/70 p-4 rounded-2xl border border-indigo-900/60 space-y-3">
+              <span className="text-[11px] uppercase tracking-wider font-extrabold text-indigo-300 block text-left">
+                📊 Scorecard Breakdown ({finalOverallScore}% Average)
+              </span>
+              <div className="grid grid-cols-2 gap-2 text-xs text-left">
+                <div className="flex justify-between bg-indigo-900/40 p-2 rounded-xl">
+                  <span className="text-slate-400">🎧 Listening:</span>
+                  <span className="font-extrabold text-cyan-400">{finalListeningScore}%</span>
+                </div>
+                <div className="flex justify-between bg-indigo-900/40 p-2 rounded-xl">
+                  <span className="text-slate-400">📅 Vocabulary:</span>
+                  <span className="font-extrabold text-cyan-400">{finalVocabScore}%</span>
+                </div>
+                <div className="flex justify-between bg-indigo-900/40 p-2 rounded-xl">
+                  <span className="text-slate-400">⚡ Grammar:</span>
+                  <span className="font-extrabold text-cyan-400">{finalGrammarScore}%</span>
+                </div>
+                <div className="flex justify-between bg-indigo-900/40 p-2 rounded-xl">
+                  <span className="text-slate-400">🖋️ Writing:</span>
+                  <span className="font-extrabold text-cyan-400">{finalWritingScore}%</span>
+                </div>
+              </div>
+            </div>
+
+            {/* ADAPTIVE PERSONALIZED RECOMMENDATIONS PANEL */}
+            <div className="bg-slate-900/80 p-4 rounded-2xl border border-cyan-500/20 text-left space-y-2">
+              <div className="flex items-center gap-1.5 text-amber-400 font-bold text-xs uppercase tracking-wide">
+                <Sparkles className="w-4 h-4 text-amber-400" />
+                <span>Personalized Study Plan (Focus: {primaryWeakArea.name})</span>
+              </div>
+              <p className="text-[11px] text-slate-300 leading-relaxed">
+                Based on your results, we recommend focusing on your <strong>{primaryWeakArea.name}</strong> skills to unlock further badges:
+              </p>
+              <ul className="space-y-1.5 text-[11px] text-slate-200">
+                {primaryWeakArea.recs.map((rec, rIdx) => (
+                  <li key={rIdx} className="flex items-start gap-1.5">
+                    <span className="text-cyan-400 font-bold">•</span>
+                    <span>{rec}</span>
+                  </li>
+                ))}
+                {secondaryWeakArea && secondaryWeakArea.score < 100 && (
+                  <li className="flex items-start gap-1.5 border-t border-slate-800 pt-1.5 mt-1.5">
+                    <span className="text-amber-400 font-bold">💡 Next step:</span>
+                    <span>{secondaryWeakArea.recs[0]}</span>
+                  </li>
+                )}
+              </ul>
+            </div>
+
+            {/* Progress metrics and streaks */}
+            <div className="bg-indigo-950/60 p-4 rounded-2xl border border-indigo-800/80 grid grid-cols-2 gap-3">
+              <div className="text-center">
+                <span className="text-[10px] text-slate-400 block uppercase font-bold">Total XP Gained</span>
+                <span className="text-md font-black text-cyan-400">+{progress.xp} XP</span>
+              </div>
+              <div className="text-center border-l border-indigo-800">
+                <span className="text-[10px] text-slate-400 block uppercase font-bold">Streak Saved</span>
+                <span className="text-md font-black text-rose-500">🔥 {progress.streak} Days</span>
+              </div>
+            </div>
+
+            {/* Final Action Redirection */}
+            <button
+              onClick={() => {
+                playSynthSound('click', isMuted);
+                setShowCelebration(false);
+                setActiveTab('dashboard');
+                triggerToast("Welcome to your scorecard dashboard! 📊", "🏆");
+              }}
+              className="w-full py-3.5 bg-gradient-to-r from-emerald-400 to-teal-500 hover:from-emerald-300 hover:to-teal-400 text-slate-950 font-black rounded-2xl shadow-xl transition hover:scale-105 active:scale-95"
+            >
+              Go to Performance Dashboard 📊
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* REWARD TOAST POP-UP */}
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-5 py-4 rounded-2xl shadow-2xl border border-indigo-500/30 flex items-center gap-3 animate-slideUp">
+          <span className="text-3xl">{toast.icon}</span>
+          <div>
+            <span className="text-xs uppercase font-bold tracking-widest text-cyan-400 block">Achievement Earned!</span>
+            <p className="text-sm font-bold">{toast.message}</p>
+          </div>
+        </div>
+      )}
+
+      {/* FOOTER */}
+      <footer className="text-center py-8 text-xs text-slate-400 mt-12 border-t border-slate-100 dark:border-slate-800">
+        <p>© 2026 Past Adventures Listening Lab. Interactive practice of simple past in English.</p>
+      </footer>
+
+      {/* COMPACT FLOATING CSS ANIMATIONS */}
+      <style>{`
+        @keyframes floatUp {
+          0% {
+            transform: translateY(100%) rotate(0deg);
+            opacity: 1;
+          }
+          100% {
+            transform: translateY(-110vh) rotate(360deg);
+            opacity: 0;
+          }
+        }
+        .animate-floatUp {
+          animation: floatUp linear infinite;
+        }
+      `}</style>
+
+    </div>
+  );
+}
